@@ -1,0 +1,15 @@
+module NPC
+{
+	imports
+	{
+		Base
+	}
+
+	item Aiteron
+	{
+		Weight	=	0.2,
+		Type	=	Normal,
+		DisplayName	=	Aiteron,
+		Icon	=	AiteronToy,
+	}
+}

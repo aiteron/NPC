@@ -1,0 +1,3 @@
+ItemName_EN = {
+ItemName_NPC.Aiteron = "Aiteron"
+}
