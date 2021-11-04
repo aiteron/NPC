@@ -303,7 +303,7 @@ function PlayerGroupAI:calcImportantCat()
 
     self.IP.isCanHeal = 0
     if self.IP.needToHeal > 0 then
-        self.IP.isCanHeal = self.IPF_isCanHeal()
+        self.IP.isCanHeal = 1
     end
 
     local firstAid = {}

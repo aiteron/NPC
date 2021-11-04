@@ -23,11 +23,13 @@ function NPCWalkToAction:new(character, location, isRun)
 
     o.pathQueue = {}
 
+    o.isValidNow = true
+
     return o
 end
 
 function NPCWalkToAction:isValid()
-	if self.character:getVehicle() then return false end
+	if self.character:getVehicle() and self.isValidNow then return false end
     return true;
 end
 
@@ -156,11 +158,19 @@ function NPCWalkToAction:start()
         if self.character:getModData().NPC.AI:isFlee() then    
             if door and window then
                 local sq = NPCUtils.getNearestSquare(self.character, door:getSquare(), window:getSquare())
+                if sq == nil then
+                    self.character:getPathFindBehavior2():pathToLocation(self.location:getX(), self.location:getY(), self.location:getZ());
+                    return
+                end
                 if sq == door:getSquare() then
                     table.insert(self.pathQueue, self.location)
                     self.character:getPathFindBehavior2():pathToLocation(door:getSquare():getX(), door:getSquare():getY(), door:getSquare():getZ());
                 else
                     sq = NPCUtils.getNearestSquare(self.character, window:getOppositeSquare(), window:getSquare())
+                    if sq == nil then
+                        self.character:getPathFindBehavior2():pathToLocation(self.location:getX(), self.location:getY(), self.location:getZ());
+                        return
+                    end
                     self.character:getPathFindBehavior2():pathToLocation(sq:getX(), sq:getY(), sq:getZ());
                     if window:isPermaLocked() then
                         ISTimedActionQueue.add(ISSmashWindow:new(self.character, window, 0));  
@@ -178,6 +188,10 @@ function NPCWalkToAction:start()
                 self.character:getPathFindBehavior2():pathToLocation(door:getSquare():getX(), door:getSquare():getY(), door:getSquare():getZ());
             elseif window then
                 local sq = NPCUtils.getNearestSquare(self.character, window:getOppositeSquare(), window:getSquare())
+                if sq == nil then
+                    self.character:getPathFindBehavior2():pathToLocation(self.location:getX(), self.location:getY(), self.location:getZ());
+                    return
+                end
                 self.character:getPathFindBehavior2():pathToLocation(sq:getX(), sq:getY(), sq:getZ());
                 if window:isPermaLocked() then
                     ISTimedActionQueue.add(ISSmashWindow:new(self.character, window, 0));  
@@ -199,7 +213,10 @@ function NPCWalkToAction:start()
             else
                 if window then
                     local sq = NPCUtils.getNearestSquare(self.character, window:getOppositeSquare(), window:getSquare())
-                    if sq == nil then return false end
+                    if sq == nil then
+                        self.character:getPathFindBehavior2():pathToLocation(self.location:getX(), self.location:getY(), self.location:getZ());
+                        return
+                    end
                     self.character:getPathFindBehavior2():pathToLocation(sq:getX(), sq:getY(), sq:getZ());
                     if window:isPermaLocked() then
                         ISTimedActionQueue.add(ISSmashWindow:new(self.character, window, 0)); 
@@ -268,6 +285,10 @@ function NPCWalkToAction:update()
             else
                 local win = nWindow
                 local sq = NPCUtils.getNearestSquare(self.character, win:getSquare(), win:getOppositeSquare())
+                if sq == nil then
+                    self.character:getPathFindBehavior2():pathToLocation(self.location:getX(), self.location:getY(), self.location:getZ());
+                    return
+                end
                 self.character:getPathFindBehavior2():pathToLocation(sq:getX(), sq:getY(), sq:getZ())
                 self.result = self.character:getPathFindBehavior2():update();
 
@@ -307,6 +328,10 @@ function NPCWalkToAction:update()
             local win = NPCUtils.FindNearestWindow(self.character:getSquare())
             if win then
                 local sq = NPCUtils.getNearestSquare(self.character, win:getSquare(), win:getOppositeSquare())
+                if sq == nil then
+                    self.character:getPathFindBehavior2():pathToLocation(self.location:getX(), self.location:getY(), self.location:getZ());
+                    return
+                end
                 self.character:getPathFindBehavior2():pathToLocation(sq:getX(), sq:getY(), sq:getZ())
                 self.result = self.character:getPathFindBehavior2():update();
 
