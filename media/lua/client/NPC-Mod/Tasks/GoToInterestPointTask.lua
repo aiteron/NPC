@@ -16,8 +16,6 @@ function GoToInterestPointTask:new(character)
     o.goalY = NPC_InterestPointMap.Rooms[newRoomID].y
     o.roomID = newRoomID
 
-    print(o.goalX, "  ", o.goalY)
-
 	return o
 end
 

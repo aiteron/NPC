@@ -452,8 +452,7 @@ function AutonomousAI:chooseTask()
 
     if self.TaskManager:getCurrentTaskScore() <= score and task ~= nil and task ~= self.TaskManager:getCurrentTaskName() then
         ISTimedActionQueue.clear(self.character)
-        --print("CURRENT TASK ", self.TaskManager:getCurrentTaskName(), " ", self.character, " ", self.character:getX(), " ", self.character:getY())
-        --print("NEW CURRENT TASK ", task, " ", self.character)
+        NPCPrint("AI", "New current task", task, self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname())
         self.TaskManager:addToTop(taskPoints[task]:new(self.character), score)
     end
 end

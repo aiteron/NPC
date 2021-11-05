@@ -264,13 +264,14 @@ function NPCWalkToAction:update()
     self.result = self.character:getPathFindBehavior2():update();
 
     if self.result == BehaviorResult.Failed then
-        print("NPCWA - path finding fail")
+        NPCPrint("NPCWalkToAction", "Path finding fail", self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname()) 
+
         self.character:getModData().NPC.lastWalkActionFailed = true
         
         local nDoor = NPCUtils.FindNearestDoor(self.character:getSquare(), false)
         local nWindow = NPCUtils.FindNearestWindow(self.character:getSquare())
 
-        if NPCUtils.getDistanceBetween(nWindow:getSquare(), self.character:getSquare()) < 2 then
+        if nWindow and NPCUtils.getDistanceBetween(nWindow:getSquare(), self.character:getSquare()) < 2 then
             local door = NPCUtils.FindNearestDoor(self.character:getSquare(), true)
             if door then
                 local doorSq = door:getSquare()
@@ -324,7 +325,7 @@ function NPCWalkToAction:update()
                 table.insert(qu, cc + 1, a6)
             end
             return
-        elseif NPCUtils.getDistanceBetween(nDoor:getSquare(), self.character:getSquare()) < 2 then
+        elseif nDoor and NPCUtils.getDistanceBetween(nDoor:getSquare(), self.character:getSquare()) < 2 then
             local win = NPCUtils.FindNearestWindow(self.character:getSquare())
             if win then
                 local sq = NPCUtils.getNearestSquare(self.character, win:getSquare(), win:getOppositeSquare())
@@ -366,12 +367,12 @@ function NPCWalkToAction:update()
                 cc = cc + 1
                 table.insert(qu, cc + 1, a6)
             else
-                print("NPCWA - Force stop")
+                NPCPrint("NPCWalkToAction", "Force stop", self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname()) 
                 self.character:getModData().NPC.lastWalkActionForceStopped = true
                 self:forceStop();
             end
         else
-            print("NPCWA - Force stop")
+            NPCPrint("NPCWalkToAction", "Force stop", self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname()) 
             self:forceStop();
         end
     end
@@ -382,7 +383,7 @@ function NPCWalkToAction:update()
         if #self.pathQueue == 0 then
             self:perform();
         else
-            print("NPCWA - go to next")
+            NPCPrint("NPCWalkToAction", "Go to next by pathQueue", self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname()) 
             self.character:getPathFindBehavior2():pathToLocation(self.pathQueue[1]:getX(), self.pathQueue[1]:getY(), self.pathQueue[1]:getZ());
             table.remove(self.pathQueue, 1)
         end
@@ -397,15 +398,14 @@ function NPCWalkToAction:update()
 
     self.timer = self.timer + 1
 
-    if self.timer == 60 and NPCUtils.hasAnotherNPCOnSquare(self.character:getSquare(), self.character:getModData()["NPC"]) then
+    if self.timer == 30 and NPCUtils.hasAnotherNPCOnSquare(self.character:getSquare(), self.character:getModData()["NPC"]) then
         local sq = NPCUtils.AdjacentFreeTileFinder_Find(self.character:getSquare())
         self.character:getPathFindBehavior2():pathToLocation(sq:getX(), sq:getY(), sq:getZ());
         table.insert(self.pathQueue, self.location)
     end
 
-    if self.timer == 500 then
+    if self.timer == 30 then
         self:forceStop();
-        --print("NPC walking force stopped")
     end 
 
     -- Close doors
@@ -428,7 +428,6 @@ function NPCWalkToAction:stop()
 end
 
 function NPCWalkToAction:perform()
-    --print("NPCWA - Perform")
 	self.character:getPathFindBehavior2():cancel()
     self.character:setPath2(nil);
 

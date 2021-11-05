@@ -12,6 +12,13 @@ local function reviveCompanion(playerObj, sq, name, id)
     NPC:load(id, sq:getX(), sq:getY(), sq:getZ(), true)
 end
 
+local function teleportToNPC(playerObj, npc)
+    local pl = getPlayer()
+    pl:setX(npc.character:getX())
+    pl:setY(npc.character:getY())
+    pl:setZ(npc.character:getZ())
+end
+
 local function spawnCompanionMenu(player, context, worldobjects, test)
 	local sq = nil
     local playerObj = getSpecificPlayer(player)
@@ -38,6 +45,14 @@ local function spawnCompanionMenu(player, context, worldobjects, test)
 
         for name, id in pairs(NPCManager.deadNPCList) do
             deadSubMenu:addOption(name, playerObj, reviveCompanion, sq, name, id)
+        end
+
+        local teleportOpt = subMenuSpawn:addOption("Teleport to NPC")
+        local teleportSubMenu = subMenuSpawn:getNew(subMenuSpawn)
+        subMenuSpawn:addSubMenu(teleportOpt, teleportSubMenu)
+
+        for i, char in ipairs(NPCManager.characters) do
+            teleportSubMenu:addOption(char.character:getDescriptor():getSurname(), playerObj, teleportToNPC, char)
         end
     end
 end

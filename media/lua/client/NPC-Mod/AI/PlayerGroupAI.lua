@@ -505,7 +505,7 @@ function PlayerGroupAI:chooseTask()
 
     if self.TaskManager:getCurrentTaskScore() <= score and task ~= nil and task ~= self.TaskManager:getCurrentTaskName() then
         ISTimedActionQueue.clear(self.character)
-        print("NEW CURRENT TASK ", task)
+        NPCPrint("AI", "New current task", task, self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname()) 
         self.TaskManager:addToTop(taskPoints[task]:new(self.character), score)
     end
 end

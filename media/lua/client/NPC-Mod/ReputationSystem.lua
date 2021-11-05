@@ -53,6 +53,9 @@ function ReputationSystem:getPlayerRep()
         if self.character:getModData().NPC.isLeader then
             return self.playerRep
         else
+            if NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)] == nil then
+                return self.playerRep
+            end
             return NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)].npc.reputationSystem:getPlayerRep()
         end
     else

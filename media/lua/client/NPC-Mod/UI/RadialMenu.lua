@@ -730,7 +730,7 @@ function NPCRadialMenu.findItemsDo(npc, where, isGroupTask)
 		end
 	else
 		npc.AI.command = "FIND_ITEMS"
-		if npc.AI.TaskArgs == nil then
+		if type(npc.AI.TaskArgs) ~= "table" then
 			npc.AI.TaskArgs = {}
 		end
 		npc.AI.TaskArgs.FIND_ITEMS_WHERE = where
