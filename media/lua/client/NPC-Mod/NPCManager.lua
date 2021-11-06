@@ -39,12 +39,12 @@ function NPCManager:OnTickUpdate()
             if char.isLeader then
                 table.remove(NPCGroupManager.Groups[char.groupID].npc, tablefind(NPCGroupManager.Groups[char.groupID].npc, char.UUID))
                 NPCGroupManager.Groups[char.groupID].count = NPCGroupManager.Groups[char.groupID].count - 1
-                if NPCGroupManager.Groups[char.groupID].count == 0 then
+                if NPCGroupManager.Groups[char.groupID].count <= 0 then
                     NPCGroupManager.Groups[char.groupID] = nil
                 else
                     NPCGroupManager.Groups[char.groupID].leader = NPCGroupManager.Groups[char.groupID].npc[1]
+                    NPCManager.characterMap[NPCGroupManager.Groups[char.groupID].leader].npc.isLeader = true
                     NPCPrint("NPCManager", "New leader of the group. GroupID:", char.groupID, NPCGroupManager.Groups[char.groupID].leader)
-                    
                 end
             end
             return
@@ -313,7 +313,7 @@ Events.OnTick.Add(NPCManager.updateZombieDangerSectors)
 
 function NPCManager.LoadGrid(square)
     if NPCManager.spawnON and square:getZ() == 0 and square:getZoneType() == "TownZone" and not square:isSolid() and square:isFree(false) and ZombRand(1200) == 0 and NPCManager.loadedNPC < NPCConfig.config["NPC_NUM"] then
-        local npc = NPC:new(square, NPCPresets_GetPreset())
+        local npc = NPC:new(square, NPCPresets_GetPreset(NPCPresets))
         npc:setAI(AutonomousAI:new(npc.character))
 
         NPCManager.loadedNPC = NPCManager.loadedNPC + 1
@@ -402,7 +402,7 @@ end
 Events.OnLoad.Add(NPCManager.OnLoad)
 
 function NPCManager.OnGameStart()
-    NPCPrint("NPCManager", "OnGameStart")
+    NPCPrint("NPCManager", "OnGameStart", "v.0.1.7")
 
     for charID, value in pairs(NPCManager.characterMap) do
         value.isLoaded = false

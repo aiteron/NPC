@@ -36,8 +36,9 @@ local function spawnCompanionMenu(player, context, worldobjects, test)
         local subMenuSpawn = context:getNew(context)
         context:addSubMenu(spawnMenuOption, subMenuSpawn)
 
-        subMenuSpawn:addOption("Spawn Random - Player team", playerObj, spawnCompanion, sq, NPCPresets_GetPreset(), true)
-        subMenuSpawn:addOption("Spawn Random - Auto team", playerObj, spawnCompanion, sq, NPCPresets_GetPreset(), false)
+        subMenuSpawn:addOption("Spawn Random - Player team", playerObj, spawnCompanion, sq, NPCPresets_GetPreset(NPCPresets), true)
+        subMenuSpawn:addOption("Spawn Random - Auto team", playerObj, spawnCompanion, sq, NPCPresets_GetPreset(NPCPresets), false)
+        subMenuSpawn:addOption("Spawn Random - Raider team", playerObj, spawnCompanion, sq, NPCPresets_GetPreset(NPCPresets_Raiders), false)
 
         local deadOpt = subMenuSpawn:addOption("Revive dead NPC")
         local deadSubMenu = subMenuSpawn:getNew(subMenuSpawn)

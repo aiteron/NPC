@@ -1,22 +1,5 @@
 NPCPresets = {}
 
---[[
-FEMALE HAIR = Bald, Bob, BobCurly, Braids, Buffont, Bun, BunCurly, Fresh, CentreParting, Cornrows, Demi, FlatTop, GreasedBack, Grungey, GrungeyBehindEars, Grungey02, 
-GrungeyParted, Hat, HatCurly, HatLong, HatLongBraided, HatLongCurly, LeftParting, Long, Longcurly, Long2, Long2curly, LongBraids, CentrePartingLong, LongBraids02, 
-MohawkFan, MohawkFlat, MohawkShort, MohawkSpike, Kate, KateCurly, OverEye, OverEyeCurly, OverLeftEye, PonyTail, PonyTailBraids, Back, Rachel, RachelCurly, RightParting, 
-ShortCurly, Spike, LibertySpikes, TopCurls
-
-MALE HAIR = Bald, Baldspot, Braids, Buffont, Fresh, CentreParting, Cornrows, CrewCut, Donny, Fabian, FabianCurly, FlatTop, GreasedBack, Grungey, GrungeyBehindEars, 
-Hat, HatLong, HatLongBraided, HatLongCurly, LeftParting, LongBraids, CentrePartingLong, LongBraids02, Messy, MessyCurly, MohawkFan, MohawkFlat, MohawkShort, MohawkSpike, 
-Mullet, MulletCurly, Picard, PonyTail, PonyTailBraids, Recede, RightParting, Short, ShortHatCurly, ShortAfroCurly, Spike, LibertySpikes, Metal
-
-MALE BEARD = "", Chin, BeardOnly, Chops, Full, Goatee, Long, Moustache, PointyChin, LongScruffy
-
-PROFESSIONS = unemployed, fireofficer, policeofficer, parkranger, constructionworker, securityguard, carpenter, 
-burglar, chef, repairman, farmer, fisherman, doctor, veteran, nurse, lumberjack, fitnessInstructor, burgerflipper, electrician, engineer, metalworker, mechanics
-
-]]--
-
 local female_hair_LIST = {"Bald", "Bob", "BobCurly", "Braids", "Buffont", "Bun", "BunCurly", "Fresh", "CentreParting", "Cornrows", "Demi", "FlatTop", "GreasedBack", "Grungey", "GrungeyBehindEars", "Grungey02", 
 "GrungeyParted", "Hat", "HatCurly", "HatLong", "HatLongBraided", "HatLongCurly", "LeftParting", "Long", "Longcurly", "Long2", "Long2curly", "LongBraids", "CentrePartingLong", "LongBraids02", 
 "MohawkFan", "MohawkFlat", "MohawkShort", "MohawkSpike", "Kate", "KateCurly", "OverEye", "OverEyeCurly", "OverLeftEye", "PonyTail", "PonyTailBraids", "Back", "Rachel", "RachelCurly", "RightParting", 
@@ -222,13 +205,79 @@ NPCPresets.Random = {
     }
 }
 
-function NPCPresets_GetPreset()
+NPCPresets_Raiders = {}
+NPCPresets_Raiders.Alpha = {
+    chance = 100,
+    isFemale = false,                           -- bool
+    skinColor = 0,                              -- int 0-4 (From light to dark)
+    hair = "RAND",                             -- string
+    hairColor = {r = 0.5, g = 0.5, b = 0.5},    -- RGBA
+    beard = "RAND",                             -- string
+    beardColor = {r = 0.5, g = 0.5, b = 0.5},   -- RGBA
+    forename = "RAND",
+    surname = "RAND",
+    profession = "RAND",
+    defaultReputation = -500,
+    perks = {
+        Fitness = "RAND",
+        Strength = "RAND",
+
+        Sprinting = "RAND",
+        Lightfoot = "RAND",
+        Nimble = "RAND",
+        Sneak = "RAND",
+
+        Axe = "RAND",
+        Blunt = "RAND",
+        SmallBlunt = "RAND",
+        LongBlade = "RAND",
+        SmallBlade = "RAND",
+        Spear = "RAND",
+        Maintenance = "RAND",
+
+        Woodwork = "RAND",
+        Cooking = "RAND",
+        Farming = "RAND", 
+        Doctor = "RAND",
+        Electricity = "RAND",
+        MetalWelding = "RAND",
+        Mechanics = "RAND",
+        Tailoring = "RAND",
+
+        Aiming = "RAND",
+        Reloading = "RAND",
+
+        Fishing = "RAND",
+        Trapping = "RAND",
+        PlantScavenging = "RAND"
+    },
+    outfit = {                          -- Item in arms: "Both hands", "Primary", "Secondary"
+        "Base.Glasses_Aviators",
+        "Base.Hat_BandanaMask",
+        "Base.Bag_MoneyBag",
+        {"Base.HoodieUP_WhiteTINT", "Color", {r = 0, g = 0, b = 0}},
+        "Base.Shirt_FormalWhite_ShortSleeveTINT",
+        "Base.Socks_Ankle",
+        "Base.Belt2",
+        "Base.Trousers_JeanBaggy",
+        {"Base.HuntingKnife", "Secondary"}
+    },
+    items = {
+    },
+    attachments = {
+    },
+    itemsInArms = {
+    }
+}
+
+
+function NPCPresets_GetPreset(presets)
     local chance = 0
     local randChance = ZombRand(0, 101)
 
     local resultPreset = NPCPresets.Aiteron
 
-    for name, pr in pairs(NPCPresets) do
+    for name, pr in pairs(presets) do
         chance = chance + pr.chance
         if randChance < chance then
             resultPreset = {}

@@ -161,7 +161,7 @@ function AutonomousAI:UpdateInputParams()
 
     p.isTooDangerous = 0                -- (1-yes, 0-no) // is too dangerous other npc or too many zombies
     if self.character:getModData()["NPC"].nearestEnemy ~= nil then
-        if self.character:getModData()["NPC"].isEnemyAtBack then
+        if self.character:getModData()["NPC"].isEnemyAtBack and self.character:getModData()["NPC"].isNearTooManyZombie then
             p.isTooDangerous = 1
         elseif self.character:getModData()["NPC"].isNearTooManyZombies or not self.agressiveAttack then
             if not self.character:isOutside() or not self.agressiveAttack then
@@ -199,15 +199,6 @@ function AutonomousAI:UpdateInputParams()
     p.goToPoint = 0
     local newRoomID = NPC_InterestPointMap:getNearestNewRoom(self.character:getX(), self.character:getY(), self.character:getModData().NPC.visitedRooms)
 
-    if newRoomID ~= nil then
-        if NPCUtils.getDistanceBetweenXYZ(NPC_InterestPointMap.Rooms[newRoomID].x, NPC_InterestPointMap.Rooms[newRoomID].y, self.character:getX(), self.character:getY()) < 6 then
-            self.checkInterestPoint = true
-            self:calcFindItemCategories()
-        else
-            p.goToPoint = 1
-        end
-    end
-    
     p.isLeader = 0
     if self.character:getModData().NPC.groupID == nil then
         p.isLeader = 1
@@ -216,6 +207,18 @@ function AutonomousAI:UpdateInputParams()
             p.isLeader = 1
         end
     end
+
+    if newRoomID ~= nil then
+        if NPCUtils.getDistanceBetweenXYZ(NPC_InterestPointMap.Rooms[newRoomID].x, NPC_InterestPointMap.Rooms[newRoomID].y, self.character:getX(), self.character:getY()) < 6 and p.isLeader == 1 then
+            self.checkInterestPoint = true
+            self:calcFindItemCategories()
+        else
+            p.goToPoint = 1
+        end
+    end
+    
+
+
 
     --
     p.isTalkTime = 0

@@ -8,6 +8,11 @@ function WaitAction:isValid()
 end
 
 function WaitAction:update()
+	self.timer = self.timer + 1
+
+	if self.timer + 5 >= self.maxTime then
+		self:perform()
+	end
 end
 
 function WaitAction:start()
@@ -33,6 +38,7 @@ function WaitAction:new(character, time)
 
 	o.mul = 2;
 	o.maxTime = time;
+	o.timer = 0
 
 	return o;
 end

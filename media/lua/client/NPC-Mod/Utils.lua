@@ -148,7 +148,7 @@ function NPCUtils.hasAnotherNPCOnSquare(square, char1)
 end
 
 function NPCUtils.isInRoom(square)
-    return square:getRoom() ~= nil or square:isInARoom()
+    return square and (square:getRoom() ~= nil or square:isInARoom())
 end
 
 function NPCUtils.getNearestSquare(obj, sq1, sq2)

@@ -100,6 +100,11 @@ function NPC:createIsoPlayer(square, preset)
 						character:setPrimaryHandItem(invItem)
 					elseif element[2] == "Secondary" then
 						character:setSecondaryHandItem(invItem)
+					elseif element[2] == "Color" then
+						invItem:setColor(Color.new(element[3].r, element[3].g, element[3].b, 1))
+						if invItem:getBodyLocation() ~= "" then
+							character:setWornItem(invItem:getBodyLocation(), invItem);
+						end
 					end
 				end
 			else
@@ -720,10 +725,12 @@ function NPC:getItemsSquareInNearbyItems(evalFunc)
 	local count = 0
 	
 	for _, container in ipairs(ScanSquaresSystem.nearbyItems.containers) do
-		local items = container:getAllEvalRecurse(evalFunc)
-		if items:size() > 0 then
-			resultItemSquares[container:getSourceGrid()] = true
-			count = count + 1
+		if container ~= nil then
+			local items = container:getAllEvalRecurse(evalFunc)
+			if items:size() > 0 then
+				resultItemSquares[container:getSourceGrid()] = true
+				count = count + 1
+			end
 		end
 	end
 
