@@ -198,7 +198,7 @@ function PlayerGroupAI:UpdateInputParams()
         p.isHaveAmmoToReload = 0
     end
     ---
-    if ZombRand(0,2000) == 0 then
+    if ZombRand(0,20000) == 0 then
         p.isSmoke = true
     elseif ZombRand(0, 5000) == 0 then
         p.isSit = true

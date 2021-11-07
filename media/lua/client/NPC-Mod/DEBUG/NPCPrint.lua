@@ -1,14 +1,16 @@
+local isPrintOn = false
 local allCategoryOn = false
 local categoryMode = {
     ["NPC"] = true,
     ["NPCManager"] = true,
     ["NPCWalkToAction"] = true,
-    ["AI"] = true
+    ["AI"] = true,
+    ["ScanSquaresSystem"] = true
 }
 
 
 function NPCPrint(category, a, b, c, d, e, f, g, h, j, k)
-    if categoryMode[category] or allCategoryOn then
+    if (categoryMode[category] or allCategoryOn) and isPrintOn then
         if b == nil then
             print("NPCPrint: [", category, "] ", a)
         elseif c == nil then

@@ -39,6 +39,19 @@ function NPCRadialMenu:showRadialMenu()
 
 	menu:addSlice("Choose sector...", getTexture("media/textures/NPC_chooseSector.png"), NPCRadialMenu.chooseSector, playerObj)
 
+	if NPCManager.pvpTurnedOn then
+		menu:addSlice("Turn Off PVP", nil, function() 
+			NPCManager.pvpTurnedOn = false 
+			IsoPlayer.setCoopPVP(false)
+		end)
+	else
+		menu:addSlice("Turn On PVP", nil, function() 
+			NPCManager.pvpTurnedOn = true 
+			IsoPlayer.setCoopPVP(true)			
+		end)
+	end
+	
+
 	
     menu:addToUIManager()
 
@@ -194,71 +207,7 @@ function NPCRadialMenu.improveReputation(npc)
 end
 
 function NPCRadialMenu.inviteToTeam(npc)
-	if npc.reputationSystem:getPlayerRep() < -100 then
-		npc:Say("FUCK YOU, I will kill you", NPCColor.Red)
-	elseif npc.reputationSystem:getPlayerRep() >= -100 and npc.reputationSystem:getPlayerRep() <= 500 then
-		local score, items = NPCUtils:checkUsefulStuffAtFloor(getPlayer():getX(), getPlayer():getY(), getPlayer():getZ())
-		if score <= 0 then
-			npc:Say("You are nobody to me. What you can give for me?", NPCColor.White)
-			npc:Say("I need some useful stuff", NPCColor.White)
-			npc:Say("Drop items on floor", NPCColor.White)
-		elseif score > 0 and score < 200 then
-			npc:Say("It's not enough", NPCColor.White)
-			npc:Say("I need some useful stuff", NPCColor.White)	
-			npc:Say("Drop items on floor", NPCColor.White)
-		else
-			npc:Say("Okay, i will go with you", NPCColor.White)
-			if npc.groupID == nil then
-				npc:setAI(PlayerGroupAI:new(npc.character)) 	
-				npc.reputationSystem.playerRep = 600
-			else
-				NPCGroupManager.Groups[npc.groupID].count = NPCGroupManager.Groups[npc.groupID].count - 1
-
-				local cc = 0
-				for ii, v in ipairs(NPCGroupManager.Groups[npc.groupID].npc) do
-					if v == npc then
-						cc = ii
-					end
-				end
-				table.remove(NPCGroupManager.Groups[npc.groupID].npc, cc)
-				if npc.isLeader then
-					NPCManager.characterMap[NPCGroupManager.Groups[npc.groupID].npc[1]].isLeader = true
-					NPCGroupManager.Groups[npc.groupID].leader = NPCGroupManager.Groups[npc.groupID].npc[1]
-				end
-
-				npc.userName:removeGroupText()
-
-				npc:setAI(PlayerGroupAI:new(npc.character)) 	
-				npc.groupID = nil
-				npc.reputationSystem.playerRep = 600
-			end
-		end
-	else
-		npc:Say("Okay! It's good idea", NPCColor.Green)
-
-		if npc.groupID == nil then
-			npc:setAI(PlayerGroupAI:new(npc.character)) 
-			npc.reputationSystem.playerRep = 600	
-		else
-			NPCGroupManager.Groups[npc.groupID].count = NPCGroupManager.Groups[npc.groupID].count - 1
-			local cc = 0
-			for ii, v in ipairs(NPCGroupManager.Groups[npc.groupID].npc) do
-				if v == npc then
-					cc = ii
-				end
-			end
-			table.remove(NPCGroupManager.Groups[npc.groupID].npc, cc)
-			if npc.isLeader then
-				NPCGroupManager.Groups[npc.groupID].npc[1].isLeader = true
-				NPCGroupManager.Groups[npc.groupID].leader = NPCGroupManager.Groups[npc.groupID].npc[1]
-			end
-			npc.userName:removeGroupText()
-
-			npc:setAI(PlayerGroupAI:new(npc.character)) 
-			npc.groupID = nil	
-			npc.reputationSystem.playerRep = 600
-		end
-	end
+	NPCGroupManager:playerInviteToTeamNPC(npc)
 end
 
 function NPCRadialMenu.teleportToMe(npc)

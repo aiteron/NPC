@@ -16,6 +16,8 @@ local professions_LIST = {"unemployed", "fireofficer", "policeofficer", "parkran
 
 local random_weapon_LIST = { "Base.Pan", "Base.SpearCrafted", "Base.HuntingKnife", "Base.KitchenKnife", "Base.Axe"}
 
+local groupCharacteristic_LIST = { "Lonely", "Group Guy", "Normal"}
+
 NPCPresets.Aiteron = {
     chance = 5,
     isFemale = false,                           -- bool
@@ -28,6 +30,7 @@ NPCPresets.Aiteron = {
     surname = "Blinov",
     profession = "veteran",
     defaultReputation = -100,
+    groupCharacteristic = groupCharacteristic_LIST[1],
     perks = {
         Fitness = 5,
         Strength = 5,
@@ -99,6 +102,7 @@ NPCPresets.Alice = {
     surname = "Brodsky",
     profession = "nurse",
     defaultReputation = 0,
+    groupCharacteristic = groupCharacteristic_LIST[2],
     perks = {
         Fitness = 3,
         Strength = 3,
@@ -162,6 +166,7 @@ NPCPresets.Random = {
     surname = "RAND",
     profession = "RAND",
     defaultReputation = "RAND",
+    groupCharacteristic = "RAND",
     perks = {
         Fitness = "RAND",
         Strength = "RAND",
@@ -218,6 +223,7 @@ NPCPresets_Raiders.Alpha = {
     surname = "RAND",
     profession = "RAND",
     defaultReputation = -500,
+    groupCharacteristic = "RAND",
     perks = {
         Fitness = "RAND",
         Strength = "RAND",
@@ -348,9 +354,15 @@ function NPCPresets_GetPreset(presets)
             end
             --
             if pr.defaultReputation == "RAND" then
-                resultPreset.defaultReputation = ZombRand(-250, 250)
+                resultPreset.defaultReputation = ZombRand(-250, 750)
             else
                 resultPreset.defaultReputation = pr.defaultReputation
+            end
+            --
+            if pr.groupCharacteristic == "RAND" then
+                resultPreset.groupCharacteristic = groupCharacteristic_LIST[ZombRand(1,4)]
+            else
+                resultPreset.groupCharacteristic = pr.groupCharacteristic
             end
             ------
             resultPreset.perks = {}

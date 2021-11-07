@@ -8,6 +8,10 @@ ScanSquaresSystem.nearbyItems.itemSquares = {}
 ScanSquaresSystem.nearbyItems.deadBodies = {}
 ScanSquaresSystem.timer = 0
 
+ScanSquaresSystem.objSquares = {}
+ScanSquaresSystem.doors = {}
+ScanSquaresSystem.windows = {}
+
 
 function ScanSquaresSystem.loadGridSquare(square)
     local sqx = square:getX()
@@ -55,6 +59,23 @@ function ScanSquaresSystem.loadGridSquare(square)
 
     if isUsefulSquare then
         ScanSquaresSystem.squares["X=" .. sqx .. "Y=" .. sqy .. "Z=" .. sqz] = {x = sqx, y = sqy, z = sqz}
+    end
+
+    ----
+    isUsefulSquare = false
+    if square:getWindow() ~= nil then
+        table.insert(ScanSquaresSystem.windows, square:getWindow())
+        isUsefulSquare = true
+    end
+
+    local door = NPCUtils:getDoor(square)
+    if door then
+        table.insert(ScanSquaresSystem.doors, door)
+        isUsefulSquare = true
+    end
+
+    if isUsefulSquare then
+        ScanSquaresSystem.objSquares["X=" .. sqx .. "Y=" .. sqy .. "Z=" .. sqz] = {x = sqx, y = sqy, z = sqz}
     end
 end
 
@@ -120,6 +141,35 @@ function ScanSquaresSystem.onTickUpdate()
                 end
             end
         end
+
+        -----
+        ScanSquaresSystem.doors = {}
+        ScanSquaresSystem.windows = {}
+
+        for xyz, sqData in pairs(ScanSquaresSystem.objSquares) do
+            local square = cell:getGridSquare(sqData.x, sqData.y, sqData.z)
+            if square == nil then
+                ScanSquaresSystem.objSquares[xyz] = nil
+            else
+                local isUsefulSquare = false
+                if square:getWindow() ~= nil then
+                    table.insert(ScanSquaresSystem.windows, square:getWindow())
+                    isUsefulSquare = true
+                end
+
+                local door = NPCUtils:getDoor(square)
+                if door then
+                    table.insert(ScanSquaresSystem.doors, door)
+                    isUsefulSquare = true
+                end
+
+                if not isUsefulSquare then
+                    ScanSquaresSystem.objSquares[xyz] = nil
+                end
+            end
+        end
+
+        NPCPrint("ScanSquaresSystem", "Clear scan sectors")
     else
         ScanSquaresSystem.timer = ScanSquaresSystem.timer - 1
     end

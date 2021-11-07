@@ -14,9 +14,11 @@ function ReputationSystem:new(character, preset)
     if preset ~= nil then
         o.playerRep = preset.defaultReputation
         o.defaultReputation = preset.defaultReputation
+    else
+        o.playerRep = 0
+        o.defaultReputation = 0
     end
     
-
     return o
 end
 
@@ -33,7 +35,15 @@ function ReputationSystem:getNPCRep(npc)
                 end
             end
         else
-            return NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)].npc.reputationSystem:getNPCRep(npc)
+            if NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)] == nil or NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)].isLoaded == false then
+                if self.reputationList[npc.ID] == nil then
+                    return self.defaultReputation
+                else
+                    return self.reputationList[npc.ID]
+                end
+            else
+                return NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)].npc.reputationSystem:getNPCRep(npc)
+            end
         end
     else
         if npc.AI:getType() == "PlayerGroupAI" and self.character:getModData().NPC.AI:getType() == "PlayerGroupAI" then
@@ -65,6 +75,10 @@ function ReputationSystem:getPlayerRep()
             return self.playerRep
         end
     end
+end
+
+function ReputationSystem:updatePlayerRep(value)
+    self.playerRep = self.playerRep + value
 end
 
 

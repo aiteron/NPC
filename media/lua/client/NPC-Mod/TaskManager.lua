@@ -17,7 +17,7 @@ end
 function TaskManager:update()
 
     if self.tasks[0] ~= nil then
-        NPCInsp("NPC", self.character:getDescriptor():getForename() .. " " .. self.character:getDescriptor():getSurname(), self.tasks[0].task.name)    
+        --NPCInsp("NPC", self.character:getDescriptor():getForename() .. " " .. self.character:getDescriptor():getSurname(), self.tasks[0].task.name)    
 
         if not self.tasks[0].task:update() then
             self:moveDown()
@@ -29,7 +29,7 @@ function TaskManager:update()
             return
         end
     else
-        NPCInsp("NPC", self.character:getDescriptor():getForename() .. " " .. self.character:getDescriptor():getSurname(), "None")
+        --NPCInsp("NPC", self.character:getDescriptor():getForename() .. " " .. self.character:getDescriptor():getSurname(), "None")
     end
 end
 

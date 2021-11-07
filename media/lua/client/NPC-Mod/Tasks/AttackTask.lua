@@ -18,6 +18,11 @@ function AttackTask:new(character)
         character:getModData().NPC:Say(NPC_Dialogues.attackTalk[ZombRand(1, #NPC_Dialogues.attackTalk+1)], NPCColor.White)
     end
 
+    if o.character:getModData().NPC.AI.nearestEnemy ~= nil and instanceof(o.character:getModData().NPC.AI.nearestEnemy, "IsoPlayer") then
+        IsoPlayer.setCoopPVP(true)    
+    end
+    NPCManager.pvpTurnOffTimer = 600
+
 	return o
 end
 

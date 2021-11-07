@@ -153,6 +153,7 @@ function AutonomousAI:UpdateInputParams()
     else
         p.isNearEnemy = 0
     end
+
     p.needReload = 0
     if currentWeapon and currentWeapon:isAimedFirearm() and currentWeapon:getCurrentAmmoCount() < currentWeapon:getMaxAmmo() and self.character:getModData()["NPC"]:haveAmmo() then
         p.needReload = 1 - currentWeapon:getCurrentAmmoCount()/currentWeapon:getMaxAmmo()
@@ -168,7 +169,7 @@ function AutonomousAI:UpdateInputParams()
                 p.isTooDangerous = 1
             elseif self.character:getPrimaryHandItem() == nil or self.character:getPrimaryHandItem() and not self.character:getPrimaryHandItem():isAimedFirearm() then
                 p.isTooDangerous = 1
-            end
+            end           
         end
     end    
     
@@ -177,7 +178,7 @@ function AutonomousAI:UpdateInputParams()
         p.isInSafeZone = 0
     end
 
-    if self.TaskManager:getCurrentTaskName() == "Flee" or self.TaskManager:getCurrentTaskName() == "StepBack" then
+    if self.TaskManager:getCurrentTaskName() == "Flee" then
         p.isRunFromDanger = 1               -- (1-yes, 0-no) // npc is flee from last danger
     else
         p.isRunFromDanger = 0
@@ -217,9 +218,6 @@ function AutonomousAI:UpdateInputParams()
         end
     end
     
-
-
-
     --
     p.isTalkTime = 0
     if ZombRand(0, 50000) == 0 then
@@ -278,19 +276,15 @@ function AutonomousAI:calcDangerCat()
 
     local attack = {}
     attack.name = "Attack"
-    attack.score = self.IP.isAgressiveMode* self.IP.isNearEnemy * (1 - self.IP.isRunFromDanger) * self.IP.isGoodWeapon * (1 - self.IP.needReload) * (1 - self.IP.isTooDangerous)
-
-    --print("attack ", attack.score)
+    attack.score = self.IP.isAgressiveMode * self.IP.isNearEnemy * (1 - self.IP.isRunFromDanger) * self.IP.isGoodWeapon * (1 - self.IP.needReload) * (1 - self.IP.isTooDangerous)
 
     local flee = {}
     flee.name = "Flee"
     flee.score = self.IP.isNearEnemy *norm(self.IP.isRunFromDanger, self.IP.isTooDangerous, self.IP.needToHeal)
 
-    --print("flee ", flee.score)
-
     local stepBack = {}
     stepBack.name = "StepBack"
-    stepBack.score = self.IP.isNearEnemy*(1-self.IP.isInSafeZone)*self.IP.needReload*self.IP.isGoodWeapon * (1-flee.score)
+    stepBack.score = self.IP.isNearEnemy*(1-self.IP.isInSafeZone)* norm(self.IP.needReload*self.IP.isGoodWeapon, 1 - self.IP.isGoodWeapon) * (1-flee.score)
 
     local reload = {}
     reload.name = "ReloadWeapon"
@@ -299,6 +293,16 @@ function AutonomousAI:calcDangerCat()
     local equip = {}
     equip.name = "EquipWeapon"
     equip.score = self.IP.isNearEnemy*(1-self.IP.isRunFromDanger)*(1-self.IP.isGoodWeapon)*self.IP.isInSafeZone
+
+    print("DICK")
+    print(self.IP.isAgressiveMode)
+    print(self.IP.isInSafeZone)
+    print(self.IP.isRunFromDanger)
+    print(self.IP.isGoodWeapon)
+    print(self.IP.isNearEnemy)
+    print(self.IP.needReload)
+
+
 
     return getMaxTaskName(attack, flee, stepBack, reload, equip)
 end
@@ -327,6 +331,14 @@ function AutonomousAI:calcImportantCat()
 end
 
 function AutonomousAI:calcNPCTaskCat()
+    local take_items_from_player = {}
+    take_items_from_player.name = "TakeItemsFromPlayer"
+    take_items_from_player.score = 0
+    if self.command == "TAKE_ITEMS_FROM_PLAYER" then
+        take_items_from_player.score = 25
+    end
+
+
     local find_items = {}
     find_items.name = "FindItems"
     find_items.score = 0
@@ -365,7 +377,7 @@ function AutonomousAI:calcNPCTaskCat()
         talk.score = 20
     end
     
-    return getMaxTaskName(find_items, goToInterestPoint, followLeader, talk)
+    return getMaxTaskName(find_items, goToInterestPoint, followLeader, talk, take_items_from_player)
 end
 
 function AutonomousAI:calcCommonTaskCat()
@@ -417,6 +429,7 @@ function AutonomousAI:chooseTask()
     taskPoints["Smoke"] = SmokeTask
     taskPoints["GoToInterestPoint"] = GoToInterestPointTask
     taskPoints["Talk"] = TalkTask
+    taskPoints["TakeItemsFromPlayer"] = TakeItemsFromPlayerTask
 
     -- Each category task have more priority than next (surrender > danger > important > ...)
     local task = nil
@@ -427,6 +440,7 @@ function AutonomousAI:chooseTask()
         score = 600
     else
         local dangerTask = self:calcDangerCat()
+        print(dangerTask)
         if dangerTask ~= nil then
             task = dangerTask
             score = 500

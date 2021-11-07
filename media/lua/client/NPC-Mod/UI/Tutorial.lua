@@ -13,14 +13,16 @@ local text = "<H1> Hi! Thanks for choosing NPC mod <BR> <TEXT> <IMAGECENTRE:medi
 "<CENTRE> Video tutorial: TODO <LINE><LINE> "
 
 function NPCTutorial.onGameBoot()
-    local animPopup = ISModalRichText:new(getCore():getScreenWidth()/2-350,getCore():getScreenHeight()/2-300,700,600, text);
-    animPopup:initialise();
-    animPopup.backgroundColor = {r=0, g=0, b=0, a=0.9};
-    animPopup.alwaysOnTop = true;
-    animPopup.chatText:paginate();
-    animPopup:setY(getCore():getScreenHeight()/2-(animPopup:getHeight()/2));
-    animPopup:setVisible(true);
-    animPopup:addToUIManager();
+    if NPCConfig.config["NPC_POPUP_WINDOW"] then
+        local animPopup = ISModalRichText:new(getCore():getScreenWidth()/2-350,getCore():getScreenHeight()/2-300,700,600, text);
+        animPopup:initialise();
+        animPopup.backgroundColor = {r=0, g=0, b=0, a=0.9};
+        animPopup.alwaysOnTop = true;
+        animPopup.chatText:paginate();
+        animPopup:setY(getCore():getScreenHeight()/2-(animPopup:getHeight()/2));
+        animPopup:setVisible(true);
+        animPopup:addToUIManager();
+    end
 end
 
 

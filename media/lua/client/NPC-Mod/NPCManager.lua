@@ -1,5 +1,7 @@
 require "NPC-Mod/NPCGroupManager"
 
+local BUILD_VERSION = "v.0.1.13"
+
 NPCManager = {}
 NPCManager.characters = {}
 NPCManager.vehicleSeatChoose = {}
@@ -8,17 +10,19 @@ NPCManager.openInventoryNPC = nil
 NPCManager.moodlesTimer = 0
 NPCManager.characterMap = nil
 NPCManager.deadNPCList = {}
-NPCManager.loadedNPC = 0
+NPCManager.NPCInRadius = 0
 NPCManager.spawnON = false
 NPCManager.isSaveLoadUpdateOn = false
 
 NPCManager.chooseSector = false
 NPCManager.sector = nil
 
+NPCManager.pvpTurnOffTimer = 0
+NPCManager.pvpTurnedOn = false
+
 function NPCManager:OnTickUpdate()
     if getPlayer():isDead() then return end
 
-    NPCManager.loadedNPC = 0
     for i, char in ipairs(NPCManager.characters) do
         char:update()
 
@@ -49,19 +53,26 @@ function NPCManager:OnTickUpdate()
             end
             return
         end
-        NPCManager.loadedNPC = NPCManager.loadedNPC + 1 
         ---
         
     end
-
-    NPCInsp("NPC", "NUM", NPCManager.loadedNPC)    
+    --NPCPrint("NPCManager", "FPS:", getAverageFPS())  
+    NPCInsp("NPC", "NPC count", NPCManager.NPCInRadius)
 
     if getPlayer():getSquare() ~= NPCManager.lastSaveSquare then
         NPCManager.isSaveLoadUpdateOn = true
     end
+
+    ---
+    if NPCManager.pvpTurnOffTimer <= 0 then
+        if IsoPlayer.getCoopPVP() and not NPCManager.pvpTurnedOn then
+            IsoPlayer.setCoopPVP(false)
+        end
+    else
+        NPCManager.pvpTurnOffTimer = NPCManager.pvpTurnOffTimer - 1
+    end
 end
 Events.OnTick.Add(NPCManager.OnTickUpdate)
-
 
 local refreshBackpackTimer = 0
 function NPCManager:InventoryUpdate()
@@ -90,6 +101,18 @@ NPCManager.hitPlayer = function(wielder, victim, weapon, damage)
             return
         else
             victim:getModData()["NPC"]:hitPlayer(wielder, weapon, damage)
+            victim:getModData()["NPC"].reputationSystem:updatePlayerRep(-200)
+            victim:getModData()["NPC"]:SayNote("Reputation [img=media/ui/ArrowDown.png]", NPCColor.Red)
+
+            if victim:getModData()["NPC"].groupID ~= nil then
+                if NPCManager.characterMap[NPCGroupManager.Groups[ victim:getModData()["NPC"].groupID].leader] and NPCManager.characterMap[NPCGroupManager.Groups[ victim:getModData()["NPC"].groupID].leader].isLoaded then
+                    local npc =  NPCManager.characterMap[NPCGroupManager.Groups[victim:getModData()["NPC"].groupID].leader].npc
+                    if npc ~= nil then
+                        npc.reputationSystem:updatePlayerRep(-50)
+                        npc:SayNote("Reputation [img=media/ui/ArrowDown.png]", NPCColor.Red)
+                    end
+                end
+            end
 
             if ZombRand(0, 4) == 0 then
                 if victim:getModData().NPC.reputationSystem.defaultReputation < 0 then
@@ -115,6 +138,26 @@ NPCManager.hitPlayer = function(wielder, victim, weapon, damage)
 	end
 end
 Events.OnWeaponHitCharacter.Add(NPCManager.hitPlayer)
+
+local lastHittedZombie = nil
+NPCManager.hitZombie = function(wielder, victim, weapon, damage)
+    if instanceof(victim, "IsoZombie") and wielder == getPlayer() then
+        lastHittedZombie = victim
+    end
+end
+Events.OnWeaponHitCharacter.Add(NPCManager.hitZombie)
+
+NPCManager.killZombie = function(zombie)
+    if zombie == lastHittedZombie then
+        for i, char in ipairs(NPCManager.characters) do
+            if NPCUtils.getDistanceBetween(char.character, getPlayer()) < 10 then
+                char.reputationSystem:updatePlayerRep(5)
+                char:SayNote("Reputation [img=media/ui/ArrowUp.png]", NPCColor.Green)
+            end
+        end    
+    end
+end
+Events.OnZombieDead.Add(NPCManager.killZombie)
 
 NPCManager.onEnterVehicle = function(player)
     if player == getPlayer() then
@@ -312,14 +355,14 @@ end
 Events.OnTick.Add(NPCManager.updateZombieDangerSectors)
 
 function NPCManager.LoadGrid(square)
-    if NPCManager.spawnON and square:getZ() == 0 and square:getZoneType() == "TownZone" and not square:isSolid() and square:isFree(false) and ZombRand(1200) == 0 and NPCManager.loadedNPC < NPCConfig.config["NPC_NUM"] then
+    if NPCManager.spawnON and square:getZ() == 0 and square:getZoneType() == "TownZone" and not square:isSolid() and square:isFree(false) and ZombRand(5000) == 0 and NPCManager.NPCInRadius < NPCConfig.config["NPC_NUM"] then
         local npc = NPC:new(square, NPCPresets_GetPreset(NPCPresets))
         npc:setAI(AutonomousAI:new(npc.character))
 
-        NPCManager.loadedNPC = NPCManager.loadedNPC + 1
+        NPCManager.NPCInRadius = NPCManager.NPCInRadius + 1
     end
 end
-Events.LoadGridsquare.Add(NPCManager.LoadGrid)
+--Events.LoadGridsquare.Add(NPCManager.LoadGrid)
 
 function NPCManager.LoadGridNewRooms(square)
     local id = square:getRoomID()
@@ -402,7 +445,9 @@ end
 Events.OnLoad.Add(NPCManager.OnLoad)
 
 function NPCManager.OnGameStart()
-    NPCPrint("NPCManager", "OnGameStart", "v.0.1.7")
+    NPCPrint("NPCManager", "OnGameStart", BUILD_VERSION)
+
+    IsoPlayer.setCoopPVP(false)
 
     for charID, value in pairs(NPCManager.characterMap) do
         value.isLoaded = false
@@ -437,5 +482,28 @@ function NPCManager.LoadGlobalModData()
 
     MeetSystem.Data = ModData.getOrCreate("MeetSystemData")
 end
-
 Events.OnInitGlobalModData.Add(NPCManager.LoadGlobalModData)
+
+local countInRadiusNPCTimer = 0
+function NPCManager.CountNPCInRadius()
+    if countInRadiusNPCTimer <= 0 then
+        countInRadiusNPCTimer = 60
+        NPCManager.NPCInRadius = 0
+        local x = getPlayer():getX()
+        local y = getPlayer():getY()
+        for _, value in pairs(NPCManager.characterMap) do
+            if value.isLoaded then
+                if NPCUtils.getDistanceBetweenXYZ(value.npc.character:getX(), value.npc.character:getY(), x, y) < 120 then
+                    NPCManager.NPCInRadius = NPCManager.NPCInRadius + 1
+                end 
+            else
+                if NPCUtils.getDistanceBetweenXYZ(value.x, value.y, x, y) < 120 then
+                    NPCManager.NPCInRadius = NPCManager.NPCInRadius + 1
+                end
+            end
+        end
+    else
+        countInRadiusNPCTimer = countInRadiusNPCTimer - 1
+    end
+end
+Events.OnTick.Add(NPCManager.CountNPCInRadius)

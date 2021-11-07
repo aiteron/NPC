@@ -31,7 +31,7 @@ local function spawnCompanionMenu(player, context, worldobjects, test)
         end
     end
     
-    if sq then
+    if sq and NPCConfig.config["NPC_DEBUG_CONTEXT"] then
         local spawnMenuOption = context:addOption("DEBUG NPC", nil, nil)
         local subMenuSpawn = context:getNew(context)
         context:addSubMenu(spawnMenuOption, subMenuSpawn)
