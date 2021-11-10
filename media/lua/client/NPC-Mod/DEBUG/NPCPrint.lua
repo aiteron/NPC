@@ -1,4 +1,4 @@
-local isPrintOn = false
+local isPrintOn = true
 local allCategoryOn = false
 local categoryMode = {
     ["NPC"] = true,

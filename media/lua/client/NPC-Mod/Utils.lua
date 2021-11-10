@@ -458,3 +458,31 @@ function tablefind(tab,el)
         end
     end
 end
+
+function NPCUtils:getNPCScore(npc)
+    local score = 0
+    
+    score = score + (npc.character:getHealth()*100 - 80)
+
+    local bestWeapon = NPCUtils:getBestWeapon(npc)
+    score = score + bestWeapon:getMaxDamage()*10
+
+    return score
+end
+
+function NPCUtils:getBestWeapon(npc)
+    local melee = NPCUtils:getBestMeleWeapon(npc.character:getInventory())
+    local firearm = NPCUtils:getBestRangedWeapon(npc.character:getInventory())
+
+    local resultWeapon = melee
+    if melee ~= nil and firearm ~= nil then
+        if firearm:getMaxDamage() > melee:getMaxDamage() then
+            resultWeapon = firearm
+        end    
+    elseif melee ~= nil then
+    else
+        resultWeapon = firearm
+    end
+    
+    return resultWeapon
+end

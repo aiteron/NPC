@@ -67,10 +67,17 @@ function FindItemsTask:updateItemLocation()
                 self.squaresCount = 0
                 break
             end
-            self.sqPath[self.sqPathCount+1] = nearestSq
-            self.sqPathCount = self.sqPathCount + 1
-
-            self.itemSquares[nearestSq] = nil
+            if self.character:getModData().NPC.AI:getType() == "AutonomousAI" then
+                if NPCUtils.getDistanceBetween(nearestSq, self.character) < 20 then
+                    self.sqPath[self.sqPathCount+1] = nearestSq
+                    self.sqPathCount = self.sqPathCount + 1
+                    self.itemSquares[nearestSq] = nil
+                end
+            else
+                self.sqPath[self.sqPathCount+1] = nearestSq
+                self.sqPathCount = self.sqPathCount + 1
+                self.itemSquares[nearestSq] = nil
+            end
 
             self.squaresCount = self.squaresCount - 1
         end
@@ -116,11 +123,7 @@ function FindItemsTask:update()
             end
             if self.character:getModData().NPC.AI:getType() == "AutonomousAI" then
                 self.complete = true
-                local newRoomID = NPC_InterestPointMap:getNearestNewRoom(self.character:getX(), self.character:getY(), self.character:getModData().NPC.visitedRooms)
-                if NPCUtils.getDistanceBetweenXYZ(self.character:getX(), self.character:getY(), NPC_InterestPointMap.Rooms[newRoomID].x, NPC_InterestPointMap.Rooms[newRoomID].y) < 50 then
-                    self.character:getModData().NPC.visitedRooms[newRoomID] = true
-                    self.character:getModData().NPC.AI.checkInterestPoint = false     
-                end
+                self.character:getModData().NPC.AI.currentInterestPoint = nil
             end
             return false
         end

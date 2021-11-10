@@ -29,8 +29,14 @@ function FleeTask:new(character)
         character:getModData()["NPC"].AI.command = ""
     end
 
-    if ZombRand(0, 8) == 0 then
-        character:getModData().NPC:Say(NPC_Dialogues.fleeTalk[ZombRand(1, #NPC_Dialogues.fleeTalk+1)], NPCColor.White)
+    if o.character:getModData().NPC.isRobbed then
+        character:getModData().NPC:Say("NO, I am RUN AWAY!", NPCColor.White)
+        o.character:getModData().NPC.isRobbed = false
+        o.character:getModData().NPC.robbedBy = nil
+    else
+        if ZombRand(0, 8) == 0 then
+            character:getModData().NPC:Say(NPC_Dialogues.fleeTalk[ZombRand(1, #NPC_Dialogues.fleeTalk+1)], NPCColor.White)
+        end
     end
 
 	return o

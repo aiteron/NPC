@@ -11,7 +11,7 @@ function AutonomousAI:new(character)
     o.TaskManager = TaskManager:new(character)
 
     o.TaskArgs = {}
-    o.command = ""
+    o.command = nil
     o.idleCommand = nil
 
     o.staySquare = nil
@@ -36,6 +36,9 @@ function AutonomousAI:new(character)
 
 	o.fleeFindOutsideSqTimer = 0
 	o.fleeFindOutsideSq = nil
+
+    o.chillTime = 0
+    o.currentInterestPoint = nil
     
     return o
 end
@@ -74,14 +77,6 @@ end
 
 function AutonomousAI:UpdateInputParams()
     local p = {}
-    
-    p.isEnemyAim = 0    -- (1-yes, 0-no) // Is enemy aim gun on NPC
-    if NPCUtils.getDistanceBetween(self.character, self.mainPlayer) < 6 and self.mainPlayer:isAiming() and self.mainPlayer:getPrimaryHandItem() and self.mainPlayer:getPrimaryHandItem():isAimedFirearm() and (self.mainPlayer:getDotWithForwardDirection(self.character:getX(), self.character:getY()) + 0.1) >= 1 then
-        p.isEnemyAim = 1
-    end
-
-    p.enemyAimHealth = self.mainPlayer:getBodyDamage():getOverallBodyHealth()/100.0             -- (from 0 to 1: 0-dead, 1-fullhealth) // aim enemy health
-    p.isEnemyAimMany = 0                                        -- (1-yes, 0-no) // is many enemies aim gun on NPC
     
     local needToHeal = 1 - self.character:getBodyDamage():getOverallBodyHealth()/100.0              -- (from 0 to 1: 0-notneed, 1-isveryneed) // how much need to heal
     p.needToHeal = 0
@@ -134,7 +129,7 @@ function AutonomousAI:UpdateInputParams()
         end
     end  
     ----------
-    p.isHaveGoodStuff = 1                                       -- (1-yes, 0-no) // Have many cool loot in inventory
+    p.isHaveGoodStuff = 0                                     -- (1-yes, 0-no) // Have many cool loot in inventory
 
     if self.character:getModData()["NPC"]:isUsingGun() then
         p.isMeleeWeaponEquipped = 0                                -- (1-yes, 0-no) // is melee weapon in arms?
@@ -148,7 +143,7 @@ function AutonomousAI:UpdateInputParams()
         p.isAgressiveMode = 0
     end
 
-    if self.character:getModData()["NPC"].nearestEnemy ~= nil then
+    if self.character:getModData()["NPC"].nearestEnemy ~= nil or self.character:getModData()["NPC"].isEnemyAtBack then
         p.isNearEnemy = 1                   -- (1-yes, 0-no) // is enemy in danger vision dist (<8)
     else
         p.isNearEnemy = 0
@@ -159,9 +154,8 @@ function AutonomousAI:UpdateInputParams()
         p.needReload = 1 - currentWeapon:getCurrentAmmoCount()/currentWeapon:getMaxAmmo()
     end
 
-
     p.isTooDangerous = 0                -- (1-yes, 0-no) // is too dangerous other npc or too many zombies
-    if self.character:getModData()["NPC"].nearestEnemy ~= nil then
+    if self.character:getModData()["NPC"].nearestEnemy ~= nil or self.character:getModData()["NPC"].isEnemyAtBack then
         if self.character:getModData()["NPC"].isEnemyAtBack and self.character:getModData()["NPC"].isNearTooManyZombie then
             p.isTooDangerous = 1
         elseif self.character:getModData()["NPC"].isNearTooManyZombies or not self.agressiveAttack then
@@ -197,32 +191,113 @@ function AutonomousAI:UpdateInputParams()
         p.isHaveAmmoToReload = 0
     end
     ---
+
+    p.findItems = 0
     p.goToPoint = 0
-    local newRoomID = NPC_InterestPointMap:getNearestNewRoom(self.character:getX(), self.character:getY(), self.character:getModData().NPC.visitedRooms)
-
+    p.followLeader = 0
+    p.haveGroup = 0
     p.isLeader = 0
-    if self.character:getModData().NPC.groupID == nil then
-        p.isLeader = 1
+    p.isChillTime = 0
+
+    if NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID) == nil then
+        if self.currentInterestPoint ~= nil then
+            p.findItems = 1
+        else
+            local newRoomID = NPC_InterestPointMap:getNearestNewRoom(self.character:getX(), self.character:getY(), self.character:getModData().NPC.visitedRooms)
+
+            if newRoomID ~= nil then
+                if NPCUtils.getDistanceBetweenXYZ(NPC_InterestPointMap.Rooms[newRoomID].x, NPC_InterestPointMap.Rooms[newRoomID].y, self.character:getX(), self.character:getY()) < 6 or self.currentInterestPoint ~= nil then
+                    p.findItems = 1
+                    self:calcFindItemCategories()
+                    self.currentInterestPoint = newRoomID
+                else
+                    p.goToPoint = 1
+                end
+            else
+                print("NO NEW INTEREST POINT")
+            end
+        end
     else
-        if self.character:getModData().NPC.isLeader then
+        p.haveGroup = 1
+        if NPCGroupManager:isLeader(self.character:getModData().NPC.UUID) then
             p.isLeader = 1
+
+            if self.currentInterestPoint ~= nil then
+                p.findItems = 1
+            else
+                local newRoomID = NPC_InterestPointMap:getNearestNewRoom(self.character:getX(), self.character:getY(), self.character:getModData().NPC.visitedRooms)
+
+                if newRoomID ~= nil then
+                    if NPCUtils.getDistanceBetweenXYZ(NPC_InterestPointMap.Rooms[newRoomID].x, NPC_InterestPointMap.Rooms[newRoomID].y, self.character:getX(), self.character:getY()) < 6 then
+                        p.findItems = 1
+                        self:calcFindItemCategories()
+                        self.currentInterestPoint = newRoomID
+                        self.character:getModData().NPC.visitedRooms[newRoomID] = true 
+                    else
+                        p.goToPoint = 1
+                    end
+                else
+                    print("NO NEW INTEREST POINT")
+                end
+            end
+            
+
+            if self.chillTime > 0 then
+                p.isChillTime = 1
+            else
+                if ZombRand(20000) == 0 then
+                    self.chillTime = 600
+                    p.isChillTime = 1
+                end
+            end
+        else
+            local leaderID = NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID))
+            local leader = NPCManager:getCharacter(leaderID)
+
+            if leader ~= nil then
+                if leader.AI.TaskManager:getCurrentTaskName() == "FindItems" and NPCUtils.getDistanceBetween(leader, self.character) < 20 then
+                    p.findItems = 1
+                    self:calcFindItemCategories()
+                else
+                    p.followLeader = 1
+                end 
+
+                if leader.AI.chillTime > 0 then
+                    p.isChillTime = 1
+                end
+            end
         end
     end
 
-    if newRoomID ~= nil then
-        if NPCUtils.getDistanceBetweenXYZ(NPC_InterestPointMap.Rooms[newRoomID].x, NPC_InterestPointMap.Rooms[newRoomID].y, self.character:getX(), self.character:getY()) < 6 and p.isLeader == 1 then
-            self.checkInterestPoint = true
-            self:calcFindItemCategories()
-        else
-            p.goToPoint = 1
+    p.isSmoke = 0
+    p.isSit = 0
+    p.talkIdle = 0
+    p.idleWalk = 0
+
+    if p.isChillTime == 1 then
+        if ZombRand(0,20000) == 0 then
+            p.isSmoke = 1
+        elseif ZombRand(0, 2000) == 0 then
+            p.talkIdle = 1
+        elseif ZombRand(0, 5000) == 0 then
+            p.isSit = 1
+        elseif ZombRand(0, 500) == 0 then
+            p.idleWalk = 1
         end
     end
-    
-    --
-    p.isTalkTime = 0
-    if ZombRand(0, 50000) == 0 then
-       -- p.isTalkTime = 1   
-       -- self.idleCommand = "TALK" 
+
+    if self.idleCommand == "TALK_COMPANION" then
+        p.talkIdle = 1
+    end
+
+    p.isRobbed = 0
+    if self.character:getModData().NPC.isRobbed then
+        p.isRobbed = 1
+    end
+
+    p.enemyAimHealth = 1            -- (from 0 to 1: 0-dead, 1-fullhealth) // aim enemy health
+    if self.character:getModData().NPC.robbedBy ~= nil then
+       p.enemyAimHealth = self.character:getModData().NPC.robbedBy:getHealth()
     end
 
     ---
@@ -244,6 +319,10 @@ function AutonomousAI:update()
         self.fleeFindOutsideSqTimer = self.fleeFindOutsideSqTimer - 1
     end
 
+    if self.chillTime > 0 then
+        self.chillTime = self.chillTime - 1
+    end
+
     self:UpdateInputParams()
     self:chooseTask()
     self.TaskManager:update()
@@ -258,15 +337,15 @@ function AutonomousAI:calcSurrenderCat()
 
     local surr = {}
     surr.name = "Surrender"
-    surr.score = self.IP.isEnemyAim * norm(self.IP.isEnemyAimMany, self.IP.needToHeal)
+    surr.score = self.IP.isRobbed
 
     local attack = {}
     attack.name = "Attack"
-    attack.score = self.IP.isEnemyAim * (1-self.IP.isEnemyAimMany) * (1-self.IP.isMeleeWeaponEquipped*self.IP.enemyAimHealth) * norm(self.IP.isGoodWeapon, (1-self.IP.enemyAimHealth))
+    attack.score = self.IP.isRobbed 
 
     local flee = {}
     flee.name = "Flee"
-    flee.score = self.IP.isEnemyAim * (1-self.IP.isEnemyAimMany) * self.IP.isHaveGoodStuff * (1 - attack.score)
+    flee.score = self.IP.isRobbed 
 
     return getMaxTaskName(surr, attack, flee)
 end
@@ -293,16 +372,6 @@ function AutonomousAI:calcDangerCat()
     local equip = {}
     equip.name = "EquipWeapon"
     equip.score = self.IP.isNearEnemy*(1-self.IP.isRunFromDanger)*(1-self.IP.isGoodWeapon)*self.IP.isInSafeZone
-
-    print("DICK")
-    print(self.IP.isAgressiveMode)
-    print(self.IP.isInSafeZone)
-    print(self.IP.isRunFromDanger)
-    print(self.IP.isGoodWeapon)
-    print(self.IP.isNearEnemy)
-    print(self.IP.needReload)
-
-
 
     return getMaxTaskName(attack, flee, stepBack, reload, equip)
 end
@@ -331,53 +400,53 @@ function AutonomousAI:calcImportantCat()
 end
 
 function AutonomousAI:calcNPCTaskCat()
-    local take_items_from_player = {}
-    take_items_from_player.name = "TakeItemsFromPlayer"
-    take_items_from_player.score = 0
-    if self.command == "TAKE_ITEMS_FROM_PLAYER" then
-        take_items_from_player.score = 25
-    end
-
-
-    local find_items = {}
-    find_items.name = "FindItems"
-    find_items.score = 0
-    if self.checkInterestPoint then
-        find_items.score = 10
-    end
-
-    local goToInterestPoint = {}
-    goToInterestPoint.name = "GoToInterestPoint"
-    goToInterestPoint.score = self.IP.goToPoint * self.IP.isLeader
-
-    local followLeader = {}
-    followLeader.name = "Follow"
-    followLeader.score = 1 - self.IP.isLeader
-
-    local talk = {}
-    talk.name = "Talk"
-    talk.score = 0
-
-    if self.character:getModData().NPC.groupID ~= nil and self.character:getModData().NPC.AI.idleCommand ~= "TALK_COMPANION" and self.idleCommand == "TALK" then
-        local id = self.character:getModData().NPC.groupID
-        if NPCGroupManager.Groups[id].count > 1 then
-            for i, n in ipairs(NPCGroupManager.Groups[id].npc) do
-                if NPCManager.characterMap[n] ~= self.character:getModData().NPC then
-                    talk.score = 20
-                    self.TaskArgs = NPCManager.characterMap[n].character
-
-                    NPCManager.characterMap[n].AI.idleCommand = "TALK_COMPANION"
-                    NPCManager.characterMap[n].AI.TaskArgs = self.character
-                end
-            end
+    if self.command ~= nil then
+        local take_items_from_player = {}
+        take_items_from_player.name = "TakeItemsFromPlayer"
+        take_items_from_player.score = 0
+        if self.command == "TAKE_ITEMS_FROM_PLAYER" then
+            take_items_from_player.score = 1
         end
-    end
 
-    if self.idleCommand == "TALK_COMPANION" then
-        talk.score = 20
+        local robbing = {}
+        robbing.name = "Robbing"
+        robbing.score = 0
+        if self.command == "ROBBING" then
+            robbing.score = 1
+        end
+
+        return getMaxTaskName(take_items_from_player, robbing)
+    else
+        local find_items = {}
+        find_items.name = "FindItems"
+        find_items.score = self.IP.findItems * (1 - self.IP.isChillTime)
+
+        local goToInterestPoint = {}
+        goToInterestPoint.name = "GoToInterestPoint"
+        goToInterestPoint.score = self.IP.goToPoint * (1 - self.IP.findItems) * (1 - self.IP.isChillTime)
+
+        local followLeader = {}
+        followLeader.name = "Follow"
+        followLeader.score = self.IP.haveGroup * (1 - self.IP.isLeader) * (1 - self.IP.isChillTime) * (1 - self.IP.findItems)
+        ----
+        local talk = {}
+        talk.name = "Talk"
+        talk.score = self.IP.isChillTime * self.IP.talkIdle
+
+        local walk = {}
+        walk.name = "IdleWalk"
+        walk.score = self.IP.isChillTime * self.IP.idleWalk
+
+        local sit = {}
+        sit.name = "Sit"
+        sit.score = self.IP.isChillTime * self.IP.isSit
+
+        local smoke = {}
+        smoke.name = "Smoke"
+        smoke.score = self.IP.isChillTime * self.IP.isSmoke
+
+        return getMaxTaskName(find_items, goToInterestPoint, followLeader, talk, walk, sit, smoke)
     end
-    
-    return getMaxTaskName(find_items, goToInterestPoint, followLeader, talk, take_items_from_player)
 end
 
 function AutonomousAI:calcCommonTaskCat()
@@ -430,6 +499,11 @@ function AutonomousAI:chooseTask()
     taskPoints["GoToInterestPoint"] = GoToInterestPointTask
     taskPoints["Talk"] = TalkTask
     taskPoints["TakeItemsFromPlayer"] = TakeItemsFromPlayerTask
+    taskPoints["Robbing"] = RobbingTask
+
+    taskPoints["Smoke"] = SmokeTask
+    taskPoints["Sit"] = SitTask
+    taskPoints["IdleWalk"] = IdleWalkTask
 
     -- Each category task have more priority than next (surrender > danger > important > ...)
     local task = nil
@@ -440,7 +514,6 @@ function AutonomousAI:chooseTask()
         score = 600
     else
         local dangerTask = self:calcDangerCat()
-        print(dangerTask)
         if dangerTask ~= nil then
             task = dangerTask
             score = 500
@@ -464,8 +537,6 @@ function AutonomousAI:chooseTask()
             end
         end
     end
-
-    
 
     if self.TaskManager:getCurrentTaskScore() <= score and task ~= nil and task ~= self.TaskManager:getCurrentTaskName() then
         ISTimedActionQueue.clear(self.character)

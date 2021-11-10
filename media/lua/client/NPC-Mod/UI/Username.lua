@@ -25,14 +25,18 @@ function NPCUsername:new(character)
 	o.groupText:setAllowAnyImage(true);
 	o.groupText:setDefaultFont(UIFont.Small);
 
+	o.showName = true
+
 	return o
 end
 
 function NPCUsername:update()
-	local x, y = self:getTextCoords()
-	self.text:AddBatchedDraw(x, y, true)
-	if self.isGroup ~= nil then
-		self.groupText:AddBatchedDraw(x + self.text:getWidth()/1.5 + self.groupText:getWidth()/2.0, y, true)
+	if self.showName then
+		local x, y = self:getTextCoords()
+		self.text:AddBatchedDraw(x, y, true)
+		if self.isGroup ~= nil then
+			self.groupText:AddBatchedDraw(x + self.text:getWidth()/1.5 + self.groupText:getWidth()/2.0, y, true)
+		end
 	end
 end
 
@@ -70,4 +74,12 @@ end
 
 function NPCUsername:removeGroupText()
 	self.isGroup = nil
+end
+
+function NPCUsername:setRaiderNickname()
+	self.text:setDefaultColors(1, 0, 0, 1)
+end
+
+function NPCUsername:setShowName(bool)
+	self.showName = bool
 end

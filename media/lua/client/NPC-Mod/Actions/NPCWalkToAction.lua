@@ -21,6 +21,7 @@ function NPCWalkToAction:update()
     if NPCUtils.hasAnotherNPCOnSquare(self.location, self.character:getModData()["NPC"]) then
         local sq = NPCUtils.AdjacentFreeTileFinder_Find(self.location)
         self.character:getPathFindBehavior2():pathToLocation(sq:getX(), sq:getY(), sq:getZ());
+        table.insert(self.pathQueue, self.location)
         self.location = sq
     end
 
@@ -87,8 +88,14 @@ function NPCWalkToAction:update()
     end
 
     if self.result == BehaviorResult.Succeeded then
-        NPCPrint("NPCWalkToAction", "Pathfind succeeded", self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname()) 
-        self:forceComplete();
+        if #self.pathQueue == 0 then
+            NPCPrint("NPCWalkToAction", "Pathfind succeeded", self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname()) 
+            self:forceComplete();
+        else
+            NPCPrint("NPCWalkToAction", "Go to next by pathQueue", self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname()) 
+            self.character:getPathFindBehavior2():pathToLocation(self.pathQueue[1]:getX(), self.pathQueue[1]:getY(), self.pathQueue[1]:getZ());
+            table.remove(self.pathQueue, 1)
+        end
     end
 
     if math.abs(self.lastX - self.character:getX()) > 1 or math.abs(self.lastY - self.character:getY()) > 1 or math.abs(self.lastZ - self.character:getZ()) > 1 then
@@ -98,6 +105,12 @@ function NPCWalkToAction:update()
         self.timer = 0
     end
     self.timer = self.timer + 1
+
+    if self.timer == 30 and NPCUtils.hasAnotherNPCOnSquare(self.character:getSquare(), self.character:getModData()["NPC"]) then
+        local sq = NPCUtils.AdjacentFreeTileFinder_Find(self.character:getSquare())
+        self.character:getPathFindBehavior2():pathToLocation(sq:getX(), sq:getY(), sq:getZ());
+        table.insert(self.pathQueue, self.location)
+    end
 
     if self.timer == 500 then
         NPCPrint("NPCWalkToAction", "Stop by timer 500", self.character:getModData().NPC.UUID, self.character:getDescriptor():getSurname()) 
@@ -321,6 +334,8 @@ function NPCWalkToAction:new(character, location, isRun, withOptimisation)
     o.lastY = character:getY();
     o.lastZ = character:getZ();
     o.timer = 0
+
+    o.pathQueue = {}
 
     return o
 end

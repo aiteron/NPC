@@ -29,10 +29,14 @@ function NPC:new(square, preset)
 	o.visitedRooms = {}
 
 	---
-	o.groupID = nil
-	o.isLeader = false
 	o.groupCharacteristic = preset.groupCharacteristic
+	o.isRaider = preset.isRaider
+	if o.isRaider then
+		o.userName:setRaiderNickname()
+	end
 	---
+	o.isRobbed = false
+	o.robbedBy = nil
 
 	o:save()
 
@@ -429,7 +433,6 @@ function NPC:doVision()
 
 	if nearZombiesCount > 2 then
 		self.isNearTooManyZombies = true
-		self.nearestEnemy = nil
 	end
 end
 

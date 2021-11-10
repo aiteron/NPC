@@ -1,9 +1,133 @@
 NPCGroupManager = {}
-NPCGroupManager.Groups = nil
+NPCGroupManager.Data = nil
 NPCGroupManager.playerBase = nil
 NPCGroupManager.dropLoot = nil
 
 NPCGroupManager.declinedInvitations = {}
+NPCGroupManager.igonreNPCIDs = {}
+
+
+----
+
+function NPCGroupManager:addGroup(leaderID, npcs, name)
+    local id = NPCUtils:UUID()
+    local color = {r = ZombRand(0, 101)/100.0, g = ZombRand(0, 101)/100.0, b = ZombRand(0, 101)/100.0}
+
+    local Tcount = 0
+    for i, npcID in ipairs(npcs) do
+        NPCGroupManager.Data.characterGroup[npcID] = id
+        Tcount = Tcount + 1
+
+        NPCManager:getCharacter(npcID).userName:setGroupText(color, name)
+
+        if NPCManager:getCharacter(leaderID).isRaider then
+            NPCManager:getCharacter(npcID).isRaider = true
+            NPCManager:getCharacter(npcID).userName:setRaiderNickname()
+        end
+    end
+
+    NPCGroupManager.Data.leaders[leaderID] = true
+    NPCGroupManager.Data.groups[id] = { ["count"] = Tcount, ["leaderID"] = leaderID, ["npcIDs"] = npcs, ["color"] = color, ["name"] = name }
+end
+
+function NPCGroupManager:getLeaderID(groupID)
+    return NPCGroupManager.Data.groups[groupID].leaderID
+end
+
+function NPCGroupManager:isLeader(npcID)
+    return NPCGroupManager.Data.leaders[npcID]
+end
+
+function NPCGroupManager:getGroupCount(groupID)
+    return NPCGroupManager.Data.groups[groupID].count
+end
+
+function NPCGroupManager:getGroupID(npcID)
+    return NPCGroupManager.Data.characterGroup[npcID]
+end
+
+function NPCGroupManager:addToGroup(groupID, npcID)
+    NPCGroupManager.Data.groups[groupID].count = NPCGroupManager.Data.groups[groupID].count + 1
+    table.insert(NPCGroupManager.Data.groups[groupID].npcIDs, npcID)
+    NPCGroupManager.Data.characterGroup[npcID] = groupID
+
+    NPCManager:getCharacter(npcID).userName:setGroupText(NPCGroupManager.Data.groups[groupID].color, NPCGroupManager.Data.groups[groupID].name)
+end
+
+function NPCGroupManager:removeFromGroup(npcID)
+    local groupID = NPCGroupManager.Data.characterGroup[npcID]
+    NPCGroupManager.Data.groups[groupID].count = NPCGroupManager.Data.groups[groupID].count - 1
+    table.remove(NPCGroupManager.Data.groups[groupID].npcIDs, tablefind(NPCGroupManager.Data.groups[groupID].npcIDs, npcID))
+
+    NPCGroupManager.Data.characterGroup[npcID] = nil
+    NPCManager:getCharacter(npcID).userName:removeGroupText()
+
+    if NPCGroupManager.Data.leaders[npcID] then
+        NPCGroupManager.Data.leaders[npcID] = false
+        NPCGroupManager.Data.groups[groupID].leaderID = NPCGroupManager.Data.groups[groupID].npcIDs[1]
+    end
+
+    if NPCGroupManager.Data.groups[groupID].count == 1 then
+        NPCGroupManager.Data.leaders[NPCGroupManager.Data.groups[groupID].leaderID] = nil
+        NPCGroupManager.Data.characterGroup[NPCGroupManager.Data.groups[groupID].leaderID] = nil
+        NPCManager:getCharacter(NPCGroupManager.Data.groups[groupID].leaderID).userName:removeGroupText()
+        NPCGroupManager.Data.groups[groupID] = nil
+    end
+end
+
+
+function NPCGroupManager:ignoreNPC(raiderID, npcID)
+    if NPCGroupManager.igonreNPCIDs[raiderID] == nil then
+        NPCGroupManager.igonreNPCIDs[raiderID] = {}
+    end
+    NPCGroupManager.igonreNPCIDs[raiderID][npcID] = true
+end
+
+function NPCGroupManager:isIgnoreNPC(raiderID, npcID)
+    return NPCGroupManager.igonreNPCIDs[raiderID] and NPCGroupManager.igonreNPCIDs[raiderID][npcID]
+end
+
+function NPCGroupManager:declineInvite(npc1ID, npc2ID)
+    if NPCGroupManager.declinedInvitations[npc1ID] == nil then
+        NPCGroupManager.declinedInvitations[npc1ID] = {}
+    end
+    NPCGroupManager.declinedInvitations[npc1ID][npc2ID] = true
+end
+
+function NPCGroupManager:isDeclinedInvite(npc1ID, npc2ID)
+    return NPCGroupManager.declinedInvitations[npc1ID] and NPCGroupManager.declinedInvitations[npc1ID][npc2ID]
+end
+
+
+function NPCGroupManager:getTeamScore(npcID)
+    local NPCgroupID = NPCGroupManager:getGroupID(npcID)
+    local NPCScore = 0
+
+    if NPCgroupID == nil then
+        local npc = NPCManager:getCharacter(npcID)
+        if npc ~= nil then
+            NPCScore = NPCScore + NPCUtils:getNPCScore(npc)
+        end
+    else
+        for _, teamNPCID in ipairs(NPCGroupManager.Data.groups[NPCgroupID].npcIDs) do
+            local npc = NPCManager:getCharacter(teamNPCID)
+            if npc ~= nil then
+                NPCScore = NPCScore + NPCUtils:getNPCScore(npc)
+            end
+        end
+    end
+
+    return NPCScore
+end
+
+
+
+
+
+
+
+
+--------
 
 function NPCGroupManager:isAtBase(x, y)
     if NPCGroupManager.playerBase.x1 ~= nil then
@@ -57,7 +181,6 @@ function NPCGroupManager:updateMeetNPC()
                 end     
             end
         end
-
     else
         meetTimer = meetTimer - 1
     end
@@ -65,105 +188,95 @@ end
 Events.OnTick.Add(NPCGroupManager.updateMeetNPC)
 
 
-function NPCGroupManager:meet(npc1, npc2)
-    if (npc1.groupID ~= nil or npc2.groupID ~= nil) and npc1.groupID == npc2.groupID then return end
-    if npc1.AI:getType() == "PlayerGroupAI" or npc2.AI:getType() == "PlayerGroupAI" then return end
-    
-    if npc1.groupID == nil and npc2.groupID == nil and npc1.groupCharacteristic ~= "Lonely" and (NPCGroupManager.declinedInvitations[npc1.UUID] == nil or NPCGroupManager.declinedInvitations[npc1.UUID][npc2.UUID] == nil) then
-        npc1:Say(npc2.character:getDescriptor():getForename() .. ", you want join my team?", NPCColor.White)
-        if npc2.groupCharacteristic == "Lonely" then
-            npc2:Say("I am survive alone", NPCColor.White)
-            if NPCGroupManager.declinedInvitations[npc1.UUID] == nil then
-                NPCGroupManager.declinedInvitations[npc1.UUID] = {}
-                NPCGroupManager.declinedInvitations[npc1.UUID][npc2.UUID] = true
+function NPCGroupManager:inviteToTeam(npc1, npc2)
+    if NPCGroupManager:getGroupID(npc1.UUID) == nil then
+        if npc1.groupCharacteristic ~= "Lonely" and not NPCGroupManager:isDeclinedInvite(npc1.UUID, npc2.UUID) then
+            npc1:Say(npc2.character:getDescriptor():getForename() .. ", you want join my team?", NPCColor.White)
+            if npc2.groupCharacteristic == "Lonely" then
+                npc2:Say("I am survive alone", NPCColor.White)
+                NPCGroupManager:declineInvite(npc1.UUID, npc2.UUID)
+            elseif npc2.groupCharacteristic == "Group Guy" then
+                npc2:Say("I am so lonely. Yes, I will go with you", NPCColor.White)
+                npc2:Say("Yes", NPCColor.White)
+                NPCGroupManager:addGroup(npc1.UUID, {npc1.UUID, npc2.UUID}, groupNames[ZombRand(1, #groupNames+1)])            
             else
-                NPCGroupManager.declinedInvitations[npc1.UUID][npc2.UUID] = true
+                npc2:Say("Yes", NPCColor.White)
+                NPCGroupManager:addGroup(npc1.UUID, {npc1.UUID, npc2.UUID}, groupNames[ZombRand(1, #groupNames+1)])
             end
-        elseif npc2.groupCharacteristic == "Group Guy" then
-            npc2:Say("I am so lonely. Yes, I will go with you", NPCColor.White)
-            npc2:Say("Yes", NPCColor.White)
-
-            local id = NPCUtils:UUID()
-            npc1.groupID = id
-            npc2.groupID = id
-
-            npc1.isLeader = true
-            local name = groupNames[ZombRand(1, #groupNames+1)]
-            local color = {r = ZombRand(0, 101)/100.0, g = ZombRand(0, 101)/100.0, b = ZombRand(0, 101)/100.0}
-            NPCGroupManager.Groups[id] = {leader = npc1.UUID, npc = {npc1.UUID, npc2.UUID}, count = 2, color = color, name = name}
-
-            npc1.userName:setGroupText(color, name)
-            npc2.userName:setGroupText(color, name)
-        else
-            npc2:Say("Yes", NPCColor.White)
-
-            local id = NPCUtils:UUID()
-            npc1.groupID = id
-            npc2.groupID = id
-
-            npc1.isLeader = true
-            local name = groupNames[ZombRand(1, #groupNames+1)]
-            local color = {r = ZombRand(0, 101)/100.0, g = ZombRand(0, 101)/100.0, b = ZombRand(0, 101)/100.0}
-            NPCGroupManager.Groups[id] = {leader = npc1.UUID, npc = {npc1.UUID, npc2.UUID}, count = 2, color = color, name = name}
-
-            npc1.userName:setGroupText(color, name)
-            npc2.userName:setGroupText(color, name)
         end
-    end
-
-    if npc1.groupID ~= nil and npc1.isLeader and npc2.groupID == nil and NPCGroupManager.Groups[npc1.groupID].count < 4 and (NPCGroupManager.declinedInvitations[npc1.groupID] == nil or NPCGroupManager.declinedInvitations[npc1.groupID][npc2.UUID] == nil) then
-        npc1:Say(npc2.character:getDescriptor():getForename() .. ", you want join my team?", NPCColor.White)
-        if npc2.groupCharacteristic == "Lonely" then
-            npc2:Say("I am survive alone", NPCColor.White)
-            if NPCGroupManager.declinedInvitations[npc1.groupID] == nil then
-                NPCGroupManager.declinedInvitations[npc1.groupID] = {}
-                NPCGroupManager.declinedInvitations[npc1.groupID][npc2.UUID] = false
+    else
+        if NPCGroupManager:isLeader(npc1.UUID) and NPCGroupManager:getGroupCount(NPCGroupManager:getGroupID(npc1.UUID)) < 4 and not NPCGroupManager:isDeclinedInvite(npc1.UUID, npc2.UUID) then
+            npc1:Say(npc2.character:getDescriptor():getForename() .. ", you want join my team?", NPCColor.White)
+            if npc2.groupCharacteristic == "Lonely" then
+                npc2:Say("I am survive alone", NPCColor.White)
+                NPCGroupManager:declineInvite(npc1.UUID, npc2.UUID)
+            elseif npc2.groupCharacteristic == "Group Guy" then
+                npc2:Say("I am so lonely. Yes, I will go with you", NPCColor.White)
+                npc2:Say("Yes", NPCColor.White)
+                NPCGroupManager:addToGroup(NPCGroupManager:getGroupID(npc1.UUID), npc2.UUID)
             else
-                NPCGroupManager.declinedInvitations[npc1.groupID][npc2.UUID] = false
+                npc2:Say("Yes", NPCColor.White)
+                NPCGroupManager:addToGroup(NPCGroupManager:getGroupID(npc1.UUID), npc2.UUID)
             end
-        elseif npc2.groupCharacteristic == "Group Guy" then
-            npc2:Say("I am so lonely. Yes, I will go with you", NPCColor.White)
-            npc2:Say("Yes", NPCColor.White)
-
-            npc2.groupID = npc1.groupID
-
-            NPCGroupManager.Groups[npc1.groupID].count = NPCGroupManager.Groups[npc1.groupID].count + 1
-            table.insert(NPCGroupManager.Groups[npc1.groupID].npc, npc2.UUID)
-
-            npc2.userName:setGroupText(NPCGroupManager.Groups[npc1.groupID].color, NPCGroupManager.Groups[npc1.groupID].name)
-        else
-            npc2:Say("Yes", NPCColor.White)
-
-            npc2.groupID = npc1.groupID
-    
-            NPCGroupManager.Groups[npc1.groupID].count = NPCGroupManager.Groups[npc1.groupID].count + 1
-            table.insert(NPCGroupManager.Groups[npc1.groupID].npc, npc2.UUID)
-    
-            npc2.userName:setGroupText(NPCGroupManager.Groups[npc1.groupID].color, NPCGroupManager.Groups[npc1.groupID].name)
         end
     end
 end
 
-function NPCGroupManager:getLeaderOfGroup(id)
-    return NPCGroupManager.Groups[id].leader
+function NPCGroupManager:meet(npc1, npc2)
+    if (NPCGroupManager:getGroupID(npc1.UUID) ~= nil or NPCGroupManager:getGroupID(npc2.UUID) ~= nil) and NPCGroupManager:getGroupID(npc1.UUID) == NPCGroupManager:getGroupID(npc2.UUID) then return end
+    if npc1.AI:getType() == "PlayerGroupAI" then return end
+
+    if npc2.AI:getType() == "PlayerGroupAI" then
+        if npc1.isRaider and (NPCGroupManager:getGroupID(npc1.UUID) == nil or NPCGroupManager:isLeader(npc1.UUID)) then
+            if not NPCGroupManager:isIgnoreNPC(npc1.UUID, npc2.UUID) then
+                if ZombRand(0, 2) == 0 then
+                    npc1.AI.command = "ROBBING"
+                    npc1.AI.TaskArgs = npc2.character
+                    NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
+                else
+                    NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
+                end
+            end
+        end
+    elseif NPCGroupManager:getGroupID(npc2.UUID) ~= nil then
+        if npc1.isRaider and (NPCGroupManager:getGroupID(npc1.UUID) == nil or NPCGroupManager:isLeader(npc1.UUID)) then
+            if not NPCGroupManager:isIgnoreNPC(npc1.UUID, npc2.UUID) then
+                if ZombRand(0, 2) == 0 and NPCGroupManager:getTeamScore(npc2.UUID) < NPCGroupManager:getTeamScore(npc1.UUID) then
+                    npc1.AI.command = "ROBBING"
+                    npc1.AI.TaskArgs = npc2.character
+                    NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
+                else
+                    NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
+                end
+            end
+        end
+    else
+        if npc1.isRaider and (NPCGroupManager:getGroupID(npc1.UUID) == nil or NPCGroupManager:isLeader(npc1.UUID)) then
+            if not NPCGroupManager:isIgnoreNPC(npc1.UUID, npc2.UUID) then
+                if ZombRand(0, 2) == 0 then
+                    if NPCGroupManager:getTeamScore(npc2.UUID) < NPCGroupManager:getTeamScore(npc1.UUID) then
+                        npc1.AI.command = "ROBBING"
+                        npc1.AI.TaskArgs = npc2.character
+                        NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
+                    else
+                        NPCGroupManager:inviteToTeam(npc1, npc2)
+                    end
+                else
+                    NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
+                end
+            end
+        elseif not npc1.isRaider and not npc2.isRaider then
+            NPCGroupManager:inviteToTeam(npc1, npc2)
+        end
+    end
 end
 
 function NPCGroupManager:joiningNPCToPlayerTeam(npc)
-    if npc.groupID == nil then
+    if NPCGroupManager:getGroupID(npc.UUID) == nil then
         npc:setAI(PlayerGroupAI:new(npc.character)) 	
         npc.reputationSystem.playerRep = 600
     else
-        table.remove(NPCGroupManager.Groups[npc.groupID].npc, tablefind(NPCGroupManager.Groups[npc.groupID].npc, npc.UUID))
-        NPCGroupManager.Groups[npc.groupID].count = NPCGroupManager.Groups[npc.groupID].count - 1
-        if NPCGroupManager.Groups[npc.groupID].count <= 0 then
-            NPCGroupManager.Groups[npc.groupID] = nil
-        else
-            NPCGroupManager.Groups[npc.groupID].leader = NPCGroupManager.Groups[npc.groupID].npc[1]
-            NPCManager.characterMap[NPCGroupManager.Groups[npc.groupID].leader].npc.isLeader = true
-        end
-        npc.isLeader = false
-        npc.groupID = nil
-        npc.userName:removeGroupText()
+        NPCGroupManager:removeFromGroup(npc.UUID)
 
         npc:setAI(PlayerGroupAI:new(npc.character)) 	
         npc.reputationSystem.playerRep = 600
@@ -250,7 +363,7 @@ function NPCGroupManager:playerInviteToTeamNPC(npc)
     if npc.groupCharacteristic == "Lonely" then
         npc:Say("I am survive alone", NPCColor.White)
     elseif npc.groupCharacteristic == "Group Guy" then
-        if npc.groupID == nil or NPCGroupManager.Groups[npc.groupID].count <= 1 then
+        if NPCGroupManager:getGroupID(npc.UUID) == nil or NPCGroupManager:getGroupCount(NPCGroupManager:getGroupID(npc.UUID)) <= 1 then
             npc:Say("I am so lonely. Yes, I will go with you", NPCColor.White)
             NPCGroupManager:joiningNPCToPlayerTeam(npc) 
         else

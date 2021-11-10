@@ -15,7 +15,7 @@ function MeetSystem:firstMeet(npc1, npc2)
 end
 
 function MeetSystem:meetAfterLongBreak(npc1, npc2)
-    if ZombRand(0, MeetSystem.chanceToSay) == 0 and npc1.groupID == npc2.groupID then
+    if ZombRand(0, MeetSystem.chanceToSay) == 0 and NPCGroupManager:getGroupID(npc1.UUID) == NPCGroupManager:getGroupID(npc2.UUID) then
         npc1:Say(NPC_Dialogues.meetAfterLongBreak[ZombRand(1, #NPC_Dialogues.meetAfterLongBreak+1)], NPCColor.White)
     end
 end

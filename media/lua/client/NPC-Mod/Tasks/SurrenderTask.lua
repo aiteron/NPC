@@ -11,6 +11,12 @@ function SurrenderTask:new(character)
 	o.name = "Surrender"
 	o.complete = false
 
+    if o.character:getModData().NPC.isRobbed then
+        character:getModData().NPC:Say("Okay, i am surrend!", NPCColor.White)
+    end
+
+    o.robbedBy = o.character:getModData().NPC.robbedBy
+
 	return o
 end
 
@@ -23,7 +29,7 @@ function SurrenderTask:stop()
 end
 
 function SurrenderTask:isValid()
-    return self.character and NPCUtils.getDistanceBetween(self.character, self.mainPlayer) < 6 and self.mainPlayer:isAiming() and self.mainPlayer:getPrimaryHandItem() and self.mainPlayer:getPrimaryHandItem():isAimedFirearm() and (self.mainPlayer:getDotWithForwardDirection(self.character:getX(), self.character:getY()) + 0.1) >= 1
+    return self.character and self.robbedBy
 end
 
 function SurrenderTask:update()
@@ -35,6 +41,12 @@ function SurrenderTask:update()
 
     if actionCount == 0 then
         ISTimedActionQueue.add(SurrenderAction:new(self.character, self.mainPlayer))
+    end
+
+    if NPCUtils.getDistanceBetween(self.robbedBy, self.character) > 15 then
+        self.character:getModData().NPC.isRobbed = false
+        self.character:getModData().NPC.robbedBy = nil
+        self.complete = true
     end
 
     return true

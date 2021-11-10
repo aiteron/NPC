@@ -119,7 +119,7 @@ function NPCRadialMenu.chooseSecotorsDropLoot(playerObj)
 		NPCManager.isDropLootType = "FOOD"
 	end)
 
-	menu:addSlice("Weapon", getTexture("media/textures/NPC_Guns_ON.png"), function()
+	menu:addSlice("Firearm", getTexture("media/textures/NPC_Guns_ON.png"), function()
 		NPCManager.chooseSector = true 
 		NPCManager.sector = nil
 		NPCManager.isDropLootChoose = true
@@ -179,6 +179,8 @@ function NPCRadialMenu.chooseCharacter(playerObj, npc)
 	if npc.AI:getType() == "AutonomousAI" then
 		--menu:addSlice("TEST - Improve reputation", nil, NPCRadialMenu.improveReputation, npc)
 
+		menu:addSlice("Rob", nil, NPCRadialMenu.rob, npc)
+
 		menu:addSlice("Invite to team", getTexture("media/textures/NPC_Invite.png"), NPCRadialMenu.inviteToTeam, npc)
 	else	
 		menu:addSlice("Info", getTexture("media/textures/NPC_info.png"), NPCRadialMenu.characterInfo, npc)
@@ -200,6 +202,11 @@ function NPCRadialMenu.chooseCharacter(playerObj, npc)
 		setJoypadFocus(playerObj:getPlayerNum(), menu)
 		playerObj:setJoypadIgnoreAimUntilCentered(true)
 	end
+end
+
+function NPCRadialMenu.rob(npc)
+	npc.isRobbed = true
+    npc.robbedBy = getPlayer()
 end
 
 function NPCRadialMenu.improveReputation(npc)
@@ -476,9 +483,9 @@ function NPCRadialMenu.FindItemsMenu(playerObj, npc, isGroupTask)
 		end
 	
 		if settings.Weapon then
-			menu:addSlice("Weapon", getTexture("media/textures/NPC_Guns_ON.png"), NPCRadialMenu.setFindWeapon, playerObj, npc, false, isGroupTask, settings)	
+			menu:addSlice("Firearm", getTexture("media/textures/NPC_Guns_ON.png"), NPCRadialMenu.setFindWeapon, playerObj, npc, false, isGroupTask, settings)	
 		else
-			menu:addSlice("Weapon", getTexture("media/textures/NPC_Guns_OFF.png"), NPCRadialMenu.setFindWeapon, playerObj, npc, true, isGroupTask, settings)
+			menu:addSlice("Firearm", getTexture("media/textures/NPC_Guns_OFF.png"), NPCRadialMenu.setFindWeapon, playerObj, npc, true, isGroupTask, settings)
 		end
 	
 		if settings.Clothing then
@@ -522,9 +529,9 @@ function NPCRadialMenu.FindItemsMenu(playerObj, npc, isGroupTask)
 		end
 	
 		if npc.AI.findItems.Weapon then
-			menu:addSlice("Weapon", getTexture("media/textures/NPC_Guns_ON.png"), NPCRadialMenu.setFindWeapon, playerObj, npc, false)	
+			menu:addSlice("Firearm", getTexture("media/textures/NPC_Guns_ON.png"), NPCRadialMenu.setFindWeapon, playerObj, npc, false)	
 		else
-			menu:addSlice("Weapon", getTexture("media/textures/NPC_Guns_OFF.png"), NPCRadialMenu.setFindWeapon, playerObj, npc, true)
+			menu:addSlice("Firearm", getTexture("media/textures/NPC_Guns_OFF.png"), NPCRadialMenu.setFindWeapon, playerObj, npc, true)
 		end
 	
 		if npc.AI.findItems.Clothing then
@@ -674,6 +681,7 @@ function NPCRadialMenu.findItemsDo(npc, where, isGroupTask)
 				char.AI.findItems.Literature = settings.Literature
 				
 				char.AI.command = "FIND_ITEMS"
+				char.AI.TaskArgs = {}
 				char.AI.TaskArgs.FIND_ITEMS_WHERE = where
 			end
 		end

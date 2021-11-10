@@ -14,14 +14,15 @@ function AttackTask:new(character)
     o.delayTimer = 0
     o.currentRunAction = nil
 
-    if ZombRand(0, 8) == 0 then
-        character:getModData().NPC:Say(NPC_Dialogues.attackTalk[ZombRand(1, #NPC_Dialogues.attackTalk+1)], NPCColor.White)
+    if o.character:getModData().NPC.isRobbed then
+        character:getModData().NPC:Say("FUCK YOU. I AM NOT SURREND!", NPCColor.White)
+        o.character:getModData().NPC.isRobbed = false
+        o.character:getModData().NPC.robbedBy = nil
+    else
+        if ZombRand(0, 8) == 0 then
+            character:getModData().NPC:Say(NPC_Dialogues.attackTalk[ZombRand(1, #NPC_Dialogues.attackTalk+1)], NPCColor.White)
+        end    
     end
-
-    if o.character:getModData().NPC.AI.nearestEnemy ~= nil and instanceof(o.character:getModData().NPC.AI.nearestEnemy, "IsoPlayer") then
-        IsoPlayer.setCoopPVP(true)    
-    end
-    NPCManager.pvpTurnOffTimer = 600
 
 	return o
 end
@@ -32,13 +33,14 @@ function AttackTask:isComplete()
 end
 
 function AttackTask:isValid()
-    if not self.character and self.character:getModData()["NPC"].nearestEnemy then
+    if self.character == nil or self.character:getModData()["NPC"].nearestEnemy == nil then
         self.character:NPCSetAttack(false)
         self.character:NPCSetMelee(false)
         self.character:NPCSetAiming(false)
         self.character:setForceShove(false);
         self.character:setAimAtFloor(false)
         self.character:setVariable("bShoveAiming", false);
+
         return false
     end
 
@@ -63,6 +65,11 @@ function AttackTask:update()
     self.character:faceThisObject(self.character:getModData()["NPC"].nearestEnemy)
 
     local dist = NPCUtils.getDistanceBetween(self.character, self.character:getModData()["NPC"].nearestEnemy)
+
+    if self.character:getModData().NPC.nearestEnemy ~= nil and instanceof(self.character:getModData().NPC.nearestEnemy, "IsoPlayer") then
+        IsoPlayer.setCoopPVP(true)   
+        NPCManager.pvpTurnOffTimer = 120 
+    end
 
     if self.character:getModData()["NPC"]:isUsingGun() and self.character:getPrimaryHandItem() and self.character:getPrimaryHandItem():isAimedFirearm() then
         if self.character:getVehicle() ~= nil then

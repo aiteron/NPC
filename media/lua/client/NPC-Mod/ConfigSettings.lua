@@ -282,8 +282,8 @@ function NPCConfigSettings.saveConfig()
 	for modId,mod in pairs(NPCConfigSettings.mods) do
 		local config = mod.config
 		local menu = mod.menu
-		local configFile = "media/config/"..modId..".config"
-		local fileWriter = getModFileWriter(modId, configFile, true, false)
+		local configFile = modId .. ".config"
+		local fileWriter = getFileWriter(configFile, true, false)
 		if fileWriter then
 			print("modId: "..modId.." saving")
 			for gameOptionName,_ in pairs(config) do
@@ -318,8 +318,8 @@ function NPCConfigSettings.loadConfig()
 
 		local config = mod.config
 		local menu = mod.menu
-		local configFile = "media/config/"..modId..".config"
-		local fileReader = getModFileReader(modId, configFile, false)
+		local configFile = modId .. ".config"
+		local fileReader = getFileReader(configFile, true)
 		if fileReader then
 			print("modId: "..modId.." loading")
 			for _,_ in pairs(config) do
@@ -357,7 +357,7 @@ Events.OnGameBoot.Add(NPCConfigSettings.loadConfig)
 
 
 NPCConfig = {}
-NPCConfig.config = { ["NPC_NUM"] = 3, ["NPC_NEED_FOOD"] = true, ["NPC_NEED_AMMO"] = true, ["NPC_CAN_INFECT"] = true, ["NPC_POPUP_WINDOW"] = true, ["NPC_DEBUG_CONTEXT"] = true }
+NPCConfig.config = { ["NPC_NUM"] = 3, ["NPC_NEED_FOOD"] = true, ["NPC_NEED_AMMO"] = true, ["NPC_CAN_INFECT"] = true, ["NPC_POPUP_WINDOW"] = true, ["NPC_DEBUG_CONTEXT"] = true, ["NPC_HIDE_NAMES"] = false }
 NPCConfig.modId = "NPC-Mod" -- needs to the same as in your mod.info
 NPCConfig.name = "NPC Settings" -- the name that will be shown in the MOD tab
 NPCConfig.menu = {}
@@ -368,6 +368,7 @@ NPCConfig.menu["NPC_NEED_AMMO"] = {type = "Tickbox", title = "NPC need ammo"}
 NPCConfig.menu["NPC_CAN_INFECT"] = {type = "Tickbox", title = "NPC can get zombie infection"}
 NPCConfig.menu["NPC_POPUP_WINDOW"] = {type = "Tickbox", title = "Welcome window"}
 NPCConfig.menu["NPC_DEBUG_CONTEXT"] = {type = "Tickbox", title = "Debug context options"}
+NPCConfig.menu["NPC_HIDE_NAMES"] = {type = "Tickbox", title = "Show NPC names only when point on them"}
 
 NPCConfigSettings = NPCConfigSettings or {}
 NPCConfigSettings.mods = NPCConfigSettings.mods or {}

@@ -23,9 +23,9 @@ function ReputationSystem:new(character, preset)
 end
 
 function ReputationSystem:getNPCRep(npc)
-    if self.character:getModData().NPC.groupID ~= nil then
-        if self.character:getModData().NPC.isLeader then
-            if npc.groupID == self.character:getModData().NPC.groupID then
+    if NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID) ~= nil then
+        if NPCGroupManager:isLeader(self.character:getModData().NPC.UUID) then
+            if NPCGroupManager:getGroupID(npc.UUID) == NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID) then
                 return 1000
             else
                 if self.reputationList[npc.ID] == nil then
@@ -35,14 +35,14 @@ function ReputationSystem:getNPCRep(npc)
                 end
             end
         else
-            if NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)] == nil or NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)].isLoaded == false then
+            if NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID))] == nil or NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID))].isLoaded == false then
                 if self.reputationList[npc.ID] == nil then
                     return self.defaultReputation
                 else
                     return self.reputationList[npc.ID]
                 end
             else
-                return NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)].npc.reputationSystem:getNPCRep(npc)
+                return NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID))].npc.reputationSystem:getNPCRep(npc)
             end
         end
     else
@@ -59,14 +59,14 @@ function ReputationSystem:getNPCRep(npc)
 end
 
 function ReputationSystem:getPlayerRep()
-    if self.character:getModData().NPC.groupID ~= nil then
-        if self.character:getModData().NPC.isLeader then
+    if NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID) ~= nil then
+        if NPCGroupManager:isLeader(self.character:getModData().NPC.UUID) then
             return self.playerRep
         else
-            if NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)] == nil or NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)].isLoaded == false then
+            if NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID))] == nil or NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID))].isLoaded == false then
                 return self.playerRep
             end
-            return NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(self.character:getModData().NPC.groupID)].npc.reputationSystem:getPlayerRep()
+            return NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID))].npc.reputationSystem:getPlayerRep()
         end
     else
         if self.character:getModData().NPC.AI:getType() == "PlayerGroupAI" then
@@ -80,5 +80,13 @@ end
 function ReputationSystem:updatePlayerRep(value)
     self.playerRep = self.playerRep + value
 end
+
+function ReputationSystem:updateNPCRep(value, npcID)
+    if self.reputationList[npcID] == nil then
+        self.reputationList[npcID] = self.defaultReputation
+    end
+    self.reputationList[npcID] = self.reputationList[npcID] + value
+end
+
 
 

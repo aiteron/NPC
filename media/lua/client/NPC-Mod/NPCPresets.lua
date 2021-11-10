@@ -31,6 +31,7 @@ NPCPresets.Aiteron = {
     profession = "veteran",
     defaultReputation = -100,
     groupCharacteristic = groupCharacteristic_LIST[1],
+    isRaider = false,
     perks = {
         Fitness = 5,
         Strength = 5,
@@ -103,6 +104,7 @@ NPCPresets.Alice = {
     profession = "nurse",
     defaultReputation = 0,
     groupCharacteristic = groupCharacteristic_LIST[2],
+    isRaider = false,
     perks = {
         Fitness = 3,
         Strength = 3,
@@ -167,6 +169,7 @@ NPCPresets.Random = {
     profession = "RAND",
     defaultReputation = "RAND",
     groupCharacteristic = "RAND",
+    isRaider = "RAND",
     perks = {
         Fitness = "RAND",
         Strength = "RAND",
@@ -224,6 +227,7 @@ NPCPresets_Raiders.Alpha = {
     profession = "RAND",
     defaultReputation = -500,
     groupCharacteristic = "RAND",
+    isRaider = true,
     perks = {
         Fitness = "RAND",
         Strength = "RAND",
@@ -364,6 +368,13 @@ function NPCPresets_GetPreset(presets)
             else
                 resultPreset.groupCharacteristic = pr.groupCharacteristic
             end
+            --
+            if pr.isRaider == "RAND" then
+                resultPreset.isRaider = NPCPresets_getRandomRaiderParam()
+            else
+                resultPreset.isRaider = pr.isRaider
+            end
+
             ------
             resultPreset.perks = {}
 
@@ -546,4 +557,11 @@ function NPCPresets_GetPreset(presets)
     end
 
     return resultPreset
+end
+
+function NPCPresets_getRandomRaiderParam()
+    if ZombRand(0, 50) == 0 then
+        return true
+    end
+    return false
 end

@@ -1,6 +1,6 @@
 require "NPC-Mod/NPCGroupManager"
 
-local BUILD_VERSION = "v.0.1.13"
+local BUILD_VERSION = "v.0.1.14"
 
 NPCManager = {}
 NPCManager.characters = {}
@@ -40,18 +40,10 @@ function NPCManager:OnTickUpdate()
             table.remove(NPCManager.characters, i)  
             
             ---
-            if char.isLeader then
-                table.remove(NPCGroupManager.Groups[char.groupID].npc, tablefind(NPCGroupManager.Groups[char.groupID].npc, char.UUID))
-                NPCGroupManager.Groups[char.groupID].count = NPCGroupManager.Groups[char.groupID].count - 1
-                if NPCGroupManager.Groups[char.groupID].count <= 0 then
-                    NPCGroupManager.Groups[char.groupID] = nil
-                else
-                    NPCGroupManager.Groups[char.groupID].leader = NPCGroupManager.Groups[char.groupID].npc[1]
-                    NPCManager.characterMap[NPCGroupManager.Groups[char.groupID].leader].npc.isLeader = true
-                    NPCPrint("NPCManager", "New leader of the group. GroupID:", char.groupID, NPCGroupManager.Groups[char.groupID].leader)
-                end
-            end
+            if NPCGroupManager:getGroupID(char.UUID) ~= nil then
+                NPCGroupManager:removeFromGroup(char.UUID)
             return
+            end
         end
         ---
         
@@ -104,9 +96,9 @@ NPCManager.hitPlayer = function(wielder, victim, weapon, damage)
             victim:getModData()["NPC"].reputationSystem:updatePlayerRep(-200)
             victim:getModData()["NPC"]:SayNote("Reputation [img=media/ui/ArrowDown.png]", NPCColor.Red)
 
-            if victim:getModData()["NPC"].groupID ~= nil then
-                if NPCManager.characterMap[NPCGroupManager.Groups[ victim:getModData()["NPC"].groupID].leader] and NPCManager.characterMap[NPCGroupManager.Groups[ victim:getModData()["NPC"].groupID].leader].isLoaded then
-                    local npc =  NPCManager.characterMap[NPCGroupManager.Groups[victim:getModData()["NPC"].groupID].leader].npc
+            if NPCGroupManager:getGroupID(victim:getModData()["NPC"].UUID) ~= nil then
+                if NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData()["NPC"].UUID))] and NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData()["NPC"].UUID))].isLoaded then
+                    local npc = NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData()["NPC"].UUID))].npc
                     if npc ~= nil then
                         npc.reputationSystem:updatePlayerRep(-50)
                         npc:SayNote("Reputation [img=media/ui/ArrowDown.png]", NPCColor.Red)
@@ -124,13 +116,16 @@ NPCManager.hitPlayer = function(wielder, victim, weapon, damage)
                 
         
             if wielder == getPlayer() then
-                if victim:getModData().NPC.groupID ~= nil then
-                    NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(victim:getModData().NPC.groupID)].npc.reputationSystem.playerRep = NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(victim:getModData().NPC.groupID)].npc.reputationSystem.playerRep - 500
+                if NPCGroupManager:getGroupID(victim:getModData().NPC.UUID) ~= nil then
+                    local npc = NPCManager:getCharacter(NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData().NPC.UUID)))
+                    if npc ~= nil then
+                        npc.reputationSystem.playerRep = npc.reputationSystem.playerRep - 500
+                    end
                 end
                 victim:getModData().NPC.reputationSystem.playerRep = victim:getModData().NPC.reputationSystem.playerRep - 500
             else
-                if victim:getModData().NPC.groupID ~= nil then
-                    NPCManager.characterMap[NPCGroupManager:getLeaderOfGroup(victim:getModData().NPC.groupID)].npc.reputationSystem.reputationList[wielder:getModData().NPC.ID] = -500
+                if NPCGroupManager:getGroupID(victim:getModData().NPC.UUID) ~= nil then
+                    NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData().NPC.UUID))].npc.reputationSystem.reputationList[wielder:getModData().NPC.ID] = -500
                 end
                 victim:getModData().NPC.reputationSystem.reputationList[wielder:getModData().NPC.ID] = -500
             end
@@ -416,6 +411,7 @@ function NPCManager.SaveLoadFunc()
                     table.remove(NPCManager.characters, i)            
                 end
             end
+            value.npc = nil
             NPCPrint("NPCManager", "NPC is unloaded (SaveLoadFunc)", charID)
         end
     end
@@ -425,14 +421,18 @@ Events.OnTick.Add(NPCManager.SaveLoadFunc)
 
 function NPCManager.OnSave()
     for charID, value in pairs(NPCManager.characterMap) do
+        if value.npc ~= nil then
             value.x = value.npc.character:getX()
             value.y = value.npc.character:getY()
             value.z = value.npc.character:getZ()
 
             value.npc:save()
             value.isSaved = true
-
+            
             NPCPrint("NPCManager", "NPC is saved (OnSave)", charID, value.npc.character:getDescriptor():getSurname())
+
+            value.npc = nil
+        end
     end
 
     NPCManager.isSaveLoadUpdateOn = false
@@ -476,7 +476,14 @@ Events.OnGameStart.Add(NPCManager.OnGameStart)
 function NPCManager.LoadGlobalModData()
     NPCManager.characterMap = ModData.getOrCreate("characterMap")
 
-    NPCGroupManager.Groups = ModData.getOrCreate("NPCGroups")
+    NPCGroupManager.Data = ModData.getOrCreate("NPCGroups")
+    if NPCGroupManager.Data.leaders == nil then
+        NPCGroupManager.Data.leaders = {}   -- playerUUID = GroupUUID
+        NPCGroupManager.Data.groups = {}    -- GroupUUID = {count, leader, {npcIDs}}
+        NPCGroupManager.Data.characterGroup = {} -- playerUUID = GroupID
+    end
+
+
     NPCGroupManager.playerBase = ModData.getOrCreate("NPCPlayerBase")
     NPCGroupManager.dropLoot = ModData.getOrCreate("NPCDropLoot")
 
@@ -507,3 +514,38 @@ function NPCManager.CountNPCInRadius()
     end
 end
 Events.OnTick.Add(NPCManager.CountNPCInRadius)
+
+
+function NPCManager:getCharacter(id)
+    return NPCManager.characterMap[id].npc
+end
+
+local pointTimer = 0
+function NPCManager:showNamesByMousePoint()
+    if NPCConfig.config["NPC_HIDE_NAMES"] then
+        if pointTimer <= 0 then
+            pointTimer = 30
+            local charBySq = {}
+
+            for i, npc in ipairs(NPCManager.characters) do
+                local sq = npc.character:getSquare()
+                if sq ~= nil then
+                    charBySq[sq] = npc
+                end
+                npc.userName:setShowName(false)
+            end
+
+            local z = getPlayer():getZ()
+            local x, y = ISCoordConversion.ToWorld(getMouseXScaled(), getMouseYScaled(), z)
+            local sq = getCell():getGridSquare(math.floor(x), math.floor(y), z)
+            if sq and sq:getFloor() then 
+                if charBySq[sq] ~= nil then
+                    charBySq[sq].userName:setShowName(true)
+                end
+            end
+        else
+            pointTimer = pointTimer - 1
+        end
+    end
+end
+Events.OnTick.Add(NPCManager.showNamesByMousePoint)
