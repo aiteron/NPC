@@ -12,7 +12,6 @@ ScanSquaresSystem.objSquares = {}
 ScanSquaresSystem.doors = {}
 ScanSquaresSystem.windows = {}
 
-
 function ScanSquaresSystem.loadGridSquare(square)
     local sqx = square:getX()
     local sqy = square:getY()
@@ -78,24 +77,43 @@ function ScanSquaresSystem.loadGridSquare(square)
         ScanSquaresSystem.objSquares["X=" .. sqx .. "Y=" .. sqy .. "Z=" .. sqz] = {x = sqx, y = sqy, z = sqz}
     end
 end
-
 Events.LoadGridsquare.Add(ScanSquaresSystem.loadGridSquare)
 
-
+ScanSquaresSystem.tempSquareBuffer = nil
+ScanSquaresSystem.isUpdateSquares = false
+ScanSquaresSystem.tempObjSquareBuffer = nil
+ScanSquaresSystem.isUpdateObjSquares = false
 function ScanSquaresSystem.onTickUpdate()
     if ScanSquaresSystem.timer <= 0 then
-        ScanSquaresSystem.timer = 600
+        ScanSquaresSystem.timer = 1200
         ScanSquaresSystem.nearbyItems.clearWaterSources = {}
         ScanSquaresSystem.nearbyItems.tainedWaterSources = {}
         ScanSquaresSystem.nearbyItems.containers = {}
         ScanSquaresSystem.nearbyItems.itemSquares = {}
         ScanSquaresSystem.nearbyItems.deadBodies = {}
+        ScanSquaresSystem.doors = {}
+        ScanSquaresSystem.windows = {}
 
-        local cell = getCell()
-        for xyz, sqData in pairs(ScanSquaresSystem.squares) do
+        ScanSquaresSystem.tempSquareBuffer = ScanSquaresSystem.squares
+        ScanSquaresSystem.squares = {}
+        ScanSquaresSystem.isUpdateSquares = true
+        ScanSquaresSystem.tempObjSquareBuffer = ScanSquaresSystem.objSquares
+        ScanSquaresSystem.objSquares = {}
+        ScanSquaresSystem.isUpdateObjSquares = true
+
+        NPCPrint("ScanSquaresSystem", "Clear scan sectors started")
+    else
+        ScanSquaresSystem.timer = ScanSquaresSystem.timer - 1
+    end
+
+    local cell = getCell()
+    if ScanSquaresSystem.isUpdateSquares then
+        local isUpdated = false
+        for xyz, sqData in pairs(ScanSquaresSystem.tempSquareBuffer) do
+            isUpdated = true
             local square = cell:getGridSquare(sqData.x, sqData.y, sqData.z)
             if square == nil then
-               ScanSquaresSystem.squares[xyz] = nil
+                ScanSquaresSystem.tempSquareBuffer[xyz] = nil
             else
                 local isUsefulSquare = false
 
@@ -136,20 +154,26 @@ function ScanSquaresSystem.onTickUpdate()
                     end
                 end	
 
-                if not isUsefulSquare then
-                    ScanSquaresSystem.squares[xyz] = nil
+                ScanSquaresSystem.tempSquareBuffer[xyz] = nil
+                if isUsefulSquare then
+                    ScanSquaresSystem.squares[xyz] = sqData
                 end
             end
+            return
         end
+        if not isUpdated then
+            ScanSquaresSystem.tempSquareBuffer = nil
+            ScanSquaresSystem.isUpdateSquares = false
+            NPCPrint("ScanSquaresSystem", "Cleared scan sectors 1")
+        end
+    end
 
-        -----
-        ScanSquaresSystem.doors = {}
-        ScanSquaresSystem.windows = {}
-
-        for xyz, sqData in pairs(ScanSquaresSystem.objSquares) do
+    if ScanSquaresSystem.isUpdateObjSquares then
+        local isUpdated = false
+        for xyz, sqData in pairs(ScanSquaresSystem.tempObjSquareBuffer) do
             local square = cell:getGridSquare(sqData.x, sqData.y, sqData.z)
             if square == nil then
-                ScanSquaresSystem.objSquares[xyz] = nil
+                ScanSquaresSystem.tempObjSquareBuffer[xyz] = nil
             else
                 local isUsefulSquare = false
                 if square:getWindow() ~= nil then
@@ -163,16 +187,24 @@ function ScanSquaresSystem.onTickUpdate()
                     isUsefulSquare = true
                 end
 
-                if not isUsefulSquare then
-                    ScanSquaresSystem.objSquares[xyz] = nil
+                ScanSquaresSystem.tempObjSquareBuffer[xyz] = nil
+                if isUsefulSquare then
+                    ScanSquaresSystem.objSquares[xyz] = sqData
                 end
             end
+            return
         end
-
-        NPCPrint("ScanSquaresSystem", "Clear scan sectors")
-    else
-        ScanSquaresSystem.timer = ScanSquaresSystem.timer - 1
-    end
+        if not isUpdated then
+            ScanSquaresSystem.tempObjSquareBuffer = nil
+            ScanSquaresSystem.isUpdateObjSquares = false
+            NPCPrint("ScanSquaresSystem", "Cleared scan sectors 2")
+        end
+    end    
 end
+
+function ScanSquaresSystem.UpdateGridSquare()
+
+end
+
 
 Events.OnTick.Add(ScanSquaresSystem.onTickUpdate)

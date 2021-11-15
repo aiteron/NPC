@@ -11,16 +11,16 @@ function FindItemsTask:new(character)
 	o.name = "FindItems"
 	o.complete = false
 
-    o.updateItemLocationTimer = 0
-
+    o.sqPath = {}
+    o.character:getModData().NPC.AI.updateItemLocationTimer = 0
     o:updateItemLocation()
 
 	return o
 end
 
 function FindItemsTask:updateItemLocation()
-    if self.updateItemLocationTimer <= 0 then
-        self.updateItemLocationTimer = 120
+    if self.character:getModData().NPC.AI.updateItemLocationTimer <= 0 then
+        self.character:getModData().NPC.AI.updateItemLocationTimer = 120
         self.itemSquares, self.squaresCount = self.character:getModData()["NPC"]:getItemsSquareInNearbyItems(function(item)
             if self.character:getModData()["NPC"].AI.findItems.Food and NPCUtils:evalIsFood(item) then
                 return true
@@ -101,8 +101,8 @@ function FindItemsTask:update()
     if not self:isValid() then return false end
     local actionCount = #ISTimedActionQueue.getTimedActionQueue(self.character).queue
 
-    if self.updateItemLocationTimer > 0 then
-        self.updateItemLocationTimer = self.updateItemLocationTimer - 1
+    if self.character:getModData().NPC.AI.updateItemLocationTimer > 0 then
+        self.character:getModData().NPC.AI.updateItemLocationTimer = self.character:getModData().NPC.AI.updateItemLocationTimer - 1
     end
 
     if self.character:getModData().NPC.lastWalkActionForceStopped then
@@ -124,6 +124,7 @@ function FindItemsTask:update()
             if self.character:getModData().NPC.AI:getType() == "AutonomousAI" then
                 self.complete = true
                 self.character:getModData().NPC.AI.currentInterestPoint = nil
+                print("DUCK")
             end
             return false
         end

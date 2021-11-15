@@ -11,7 +11,7 @@ function RobbingTask:new(character)
 	o.name = "Robbing"
 	o.complete = false
 
-    o.robbedCharacter = self.character:getModData().NPC.AI.TaskArgs
+    o.robbedCharacter = o.character:getModData().NPC.AI.TaskArgs.robbedPerson
 
     o.character:getModData().NPC:Say("Stay here! I am robbing you!", NPCColor.White)
 

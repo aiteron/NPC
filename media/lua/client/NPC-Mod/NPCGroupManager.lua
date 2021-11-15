@@ -15,14 +15,16 @@ function NPCGroupManager:addGroup(leaderID, npcs, name)
 
     local Tcount = 0
     for i, npcID in ipairs(npcs) do
-        NPCGroupManager.Data.characterGroup[npcID] = id
-        Tcount = Tcount + 1
+        if NPCManager:getCharacter(npcID) ~= nil then
+            NPCGroupManager.Data.characterGroup[npcID] = id
+            Tcount = Tcount + 1
 
-        NPCManager:getCharacter(npcID).userName:setGroupText(color, name)
+            NPCManager:getCharacter(npcID).userName:setGroupText(color, name)
 
-        if NPCManager:getCharacter(leaderID).isRaider then
-            NPCManager:getCharacter(npcID).isRaider = true
-            NPCManager:getCharacter(npcID).userName:setRaiderNickname()
+            if NPCManager:getCharacter(leaderID).isRaider then
+                NPCManager:getCharacter(npcID).isRaider = true
+                NPCManager:getCharacter(npcID).userName:setRaiderNickname()
+            end
         end
     end
 
@@ -47,11 +49,13 @@ function NPCGroupManager:getGroupID(npcID)
 end
 
 function NPCGroupManager:addToGroup(groupID, npcID)
-    NPCGroupManager.Data.groups[groupID].count = NPCGroupManager.Data.groups[groupID].count + 1
-    table.insert(NPCGroupManager.Data.groups[groupID].npcIDs, npcID)
-    NPCGroupManager.Data.characterGroup[npcID] = groupID
+    if NPCManager:getCharacter(npcID) ~= nil then
+        NPCGroupManager.Data.groups[groupID].count = NPCGroupManager.Data.groups[groupID].count + 1
+        table.insert(NPCGroupManager.Data.groups[groupID].npcIDs, npcID)
+        NPCGroupManager.Data.characterGroup[npcID] = groupID
 
-    NPCManager:getCharacter(npcID).userName:setGroupText(NPCGroupManager.Data.groups[groupID].color, NPCGroupManager.Data.groups[groupID].name)
+        NPCManager:getCharacter(npcID).userName:setGroupText(NPCGroupManager.Data.groups[groupID].color, NPCGroupManager.Data.groups[groupID].name)
+    end
 end
 
 function NPCGroupManager:removeFromGroup(npcID)
@@ -60,7 +64,9 @@ function NPCGroupManager:removeFromGroup(npcID)
     table.remove(NPCGroupManager.Data.groups[groupID].npcIDs, tablefind(NPCGroupManager.Data.groups[groupID].npcIDs, npcID))
 
     NPCGroupManager.Data.characterGroup[npcID] = nil
-    NPCManager:getCharacter(npcID).userName:removeGroupText()
+    if NPCManager:getCharacter(npcID) ~= nil then
+        NPCManager:getCharacter(npcID).userName:removeGroupText()
+    end
 
     if NPCGroupManager.Data.leaders[npcID] then
         NPCGroupManager.Data.leaders[npcID] = false
@@ -70,7 +76,9 @@ function NPCGroupManager:removeFromGroup(npcID)
     if NPCGroupManager.Data.groups[groupID].count == 1 then
         NPCGroupManager.Data.leaders[NPCGroupManager.Data.groups[groupID].leaderID] = nil
         NPCGroupManager.Data.characterGroup[NPCGroupManager.Data.groups[groupID].leaderID] = nil
-        NPCManager:getCharacter(NPCGroupManager.Data.groups[groupID].leaderID).userName:removeGroupText()
+        if NPCManager:getCharacter(NPCGroupManager.Data.groups[groupID].leaderID) ~= nil then
+            NPCManager:getCharacter(NPCGroupManager.Data.groups[groupID].leaderID).userName:removeGroupText()
+        end
         NPCGroupManager.Data.groups[groupID] = nil
     end
 end
@@ -231,7 +239,7 @@ function NPCGroupManager:meet(npc1, npc2)
             if not NPCGroupManager:isIgnoreNPC(npc1.UUID, npc2.UUID) then
                 if ZombRand(0, 2) == 0 then
                     npc1.AI.command = "ROBBING"
-                    npc1.AI.TaskArgs = npc2.character
+                    npc1.AI.TaskArgs.robbedPerson = npc2.character
                     NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
                 else
                     NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
@@ -243,7 +251,7 @@ function NPCGroupManager:meet(npc1, npc2)
             if not NPCGroupManager:isIgnoreNPC(npc1.UUID, npc2.UUID) then
                 if ZombRand(0, 2) == 0 and NPCGroupManager:getTeamScore(npc2.UUID) < NPCGroupManager:getTeamScore(npc1.UUID) then
                     npc1.AI.command = "ROBBING"
-                    npc1.AI.TaskArgs = npc2.character
+                    npc1.AI.TaskArgs.robbedPerson = npc2.character
                     NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
                 else
                     NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
@@ -256,7 +264,7 @@ function NPCGroupManager:meet(npc1, npc2)
                 if ZombRand(0, 2) == 0 then
                     if NPCGroupManager:getTeamScore(npc2.UUID) < NPCGroupManager:getTeamScore(npc1.UUID) then
                         npc1.AI.command = "ROBBING"
-                        npc1.AI.TaskArgs = npc2.character
+                        npc1.AI.TaskArgs.robbedPerson = npc2.character
                         NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
                     else
                         NPCGroupManager:inviteToTeam(npc1, npc2)
@@ -397,7 +405,7 @@ function NPCGroupManager:playerInviteToTeamNPC(npc)
                     if #items > 0 then
                         npc:Say("One sec, I will take it", NPCColor.White)
                         npc.AI.command = "TAKE_ITEMS_FROM_PLAYER"
-                        npc.AI.TaskArgs = items
+                        npc.AI.TaskArgs.inviteItems = items
                     end
                 end
             end

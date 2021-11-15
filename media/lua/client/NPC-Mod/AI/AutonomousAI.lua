@@ -39,6 +39,8 @@ function AutonomousAI:new(character)
 
     o.chillTime = 0
     o.currentInterestPoint = nil
+
+    o.updateItemLocationTimer = 0
     
     return o
 end
@@ -206,10 +208,11 @@ function AutonomousAI:UpdateInputParams()
             local newRoomID = NPC_InterestPointMap:getNearestNewRoom(self.character:getX(), self.character:getY(), self.character:getModData().NPC.visitedRooms)
 
             if newRoomID ~= nil then
-                if NPCUtils.getDistanceBetweenXYZ(NPC_InterestPointMap.Rooms[newRoomID].x, NPC_InterestPointMap.Rooms[newRoomID].y, self.character:getX(), self.character:getY()) < 6 or self.currentInterestPoint ~= nil then
+                if NPCUtils.getDistanceBetweenXYZ(NPC_InterestPointMap.Rooms[newRoomID].x, NPC_InterestPointMap.Rooms[newRoomID].y, self.character:getX(), self.character:getY()) < 6 then
                     p.findItems = 1
                     self:calcFindItemCategories()
                     self.currentInterestPoint = newRoomID
+                    self.character:getModData().NPC.visitedRooms[newRoomID] = true 
                 else
                     p.goToPoint = 1
                 end
@@ -233,6 +236,7 @@ function AutonomousAI:UpdateInputParams()
                         self:calcFindItemCategories()
                         self.currentInterestPoint = newRoomID
                         self.character:getModData().NPC.visitedRooms[newRoomID] = true 
+
                     else
                         p.goToPoint = 1
                     end

@@ -1,6 +1,6 @@
 require "NPC-Mod/NPCGroupManager"
 
-local BUILD_VERSION = "v.0.1.14"
+local BUILD_VERSION = "v.0.1.15"
 
 NPCManager = {}
 NPCManager.characters = {}
@@ -73,7 +73,7 @@ function NPCManager:InventoryUpdate()
     if refreshBackpackTimer <= 0 then
         refreshBackpackTimer = 60
         for i, char in ipairs(NPCManager.characters) do
-            if not char.character:isDead() and char.AI:getType() == "PlayerGroupAI" then
+            if not char.character:isDead() and (char.AI:getType() == "PlayerGroupAI" or char.isRobbed) then
                 if NPCUtils.getDistanceBetween(char.character, getPlayer()) < 2 then
                     NPCManager.openInventoryNPC = char
                     ISPlayerData[1].lootInventory:refreshBackpacks()
@@ -98,7 +98,7 @@ NPCManager.hitPlayer = function(wielder, victim, weapon, damage)
 
             if NPCGroupManager:getGroupID(victim:getModData()["NPC"].UUID) ~= nil then
                 if NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData()["NPC"].UUID))] and NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData()["NPC"].UUID))].isLoaded then
-                    local npc = NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData()["NPC"].UUID))].npc
+                    local npc = NPCManager:getCharacter(NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData()["NPC"].UUID)))
                     if npc ~= nil then
                         npc.reputationSystem:updatePlayerRep(-50)
                         npc:SayNote("Reputation [img=media/ui/ArrowDown.png]", NPCColor.Red)
@@ -125,7 +125,10 @@ NPCManager.hitPlayer = function(wielder, victim, weapon, damage)
                 victim:getModData().NPC.reputationSystem.playerRep = victim:getModData().NPC.reputationSystem.playerRep - 500
             else
                 if NPCGroupManager:getGroupID(victim:getModData().NPC.UUID) ~= nil then
-                    NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData().NPC.UUID))].npc.reputationSystem.reputationList[wielder:getModData().NPC.ID] = -500
+                    local char = NPCManager:getCharacter(NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData().NPC.UUID)))
+                    if char ~= nil then
+                        char.reputationSystem.reputationList[wielder:getModData().NPC.ID] = -500
+                    end
                 end
                 victim:getModData().NPC.reputationSystem.reputationList[wielder:getModData().NPC.ID] = -500
             end
@@ -284,9 +287,59 @@ function ISInventoryTransferAction:start()
     tempTransferFunc(self)
 end
 
-local tempTrasferPerfFunc = ISInventoryTransferAction.perform
 function ISInventoryTransferAction:perform()
-    tempTrasferPerfFunc(self)
+	-- I would have done this in start(), however the first action added to the queue
+	-- is started immediately, before any other actions can be added.
+	self:checkQueueList()
+
+	self.item:setJobDelta(0.0)
+--	print("perform on item", self.item, self.item:getDisplayName())
+	-- take the next item in our queue list
+	local queuedItem = table.remove(self.queueList, 1);
+	-- reopen the correct container
+	if self.selectedContainer and self.character == getPlayer() then
+		getPlayerLoot(self.character:getPlayerNum()):selectButtonForContainer(self.selectedContainer)
+	end
+
+	for i,item in ipairs(queuedItem.items) do
+		self.item = item
+		-- Check destination container capacity and item-count limit.
+		if not self:isValid() then
+			self.queueList = {}
+			break
+		end
+		self:transferItem(item);
+	end
+	-- if we still have other item to transfer in our queue list, we "reset" the action
+	if #self.queueList > 0 then
+		queuedItem = self.queueList[1]
+		self.item = queuedItem.items[1];
+--		print("reset with new item: ", queuedItem.items[1], #queuedItem.items)
+		local time = queuedItem.time;
+		if self:isAlreadyTransferred(self.item) then
+			time = 0
+		end
+		self.maxTime = time
+		self.action:setTime(tonumber(time))
+		self:resetJobDelta();
+		self:startActionAnim()
+	else
+		self.action:stopTimedActionAnim();
+		self.action:setLoopedAction(false);
+
+		if self.onCompleteFunc then
+			local args = self.onCompleteArgs
+			self.onCompleteFunc(args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8])
+		end
+
+		-- needed to remove from queue / start next.
+		ISBaseTimedAction.perform(self);
+	end
+
+	if instanceof(self.item, "Radio") then
+		self.character:updateEquippedRadioFreq();
+	end
+
     for i, char in ipairs(NPCManager.characters) do
         if NPCUtils.getDistanceBetween(char.character, getPlayer()) < 30 then
             table.insert(ScanSquaresSystem.nearbyItems.containers, self.destContainer)
@@ -304,51 +357,6 @@ function ISGrabItemAction:start()
     tempGrabFunc(self)
 end
 
-
-NPCManager.zombiesDangerByXYZ = {}
-NPCManager.updateZombieDangerSectorsTimer = 0
-NPCManager.updateZombieDangerSectors = function()
-    if NPCManager.updateZombieDangerSectorsTimer <= 0 then
-        NPCManager.updateZombieDangerSectorsTimer = 500
-
-        NPCManager.zombiesDangerByXYZ = {}
-        
-        local enemies = {}
-        local objects = getPlayer():getCell():getObjectList()
-        if(objects ~= nil) then
-            for i=0, objects:size()-1 do
-                local obj = objects:get(i);
-                if obj ~= nil and instanceof(obj,"IsoZombie") and not obj:isDead() then    
-                    enemies[obj] = true
-                end
-            end
-        end
-
-        for zomb, _ in pairs(enemies) do
-            local counter = 0
-            for zomb2, _ in pairs(enemies) do
-                if zomb ~= zomb2 and zomb:getZ() == zomb2:getZ() and NPCUtils.getDistanceBetween(zomb, zomb2) < 3 then
-                    counter = counter + 1
-                end
-                if counter >= 2 then break end
-            end
-            if counter >= 2 then
-                local x = zomb:getSquare():getX()
-                local y = zomb:getSquare():getY()
-                local z = zomb:getSquare():getZ()
-                for i=-2, 2 do
-                    for j=-2, 2 do
-                        NPCManager.zombiesDangerByXYZ["X" .. tostring(x+i) .. "Y" .. tostring(y+j) .. "Z" .. tostring(z)] = true
-                    end
-                end
-            end
-        end
-    else
-        NPCManager.updateZombieDangerSectorsTimer = NPCManager.updateZombieDangerSectorsTimer - 1
-    end 
-end
-Events.OnTick.Add(NPCManager.updateZombieDangerSectors)
-
 function NPCManager.LoadGrid(square)
     if NPCManager.spawnON and square:getZ() == 0 and square:getZoneType() == "TownZone" and not square:isSolid() and square:isFree(false) and ZombRand(5000) == 0 and NPCManager.NPCInRadius < NPCConfig.config["NPC_NUM"] then
         local npc = NPC:new(square, NPCPresets_GetPreset(NPCPresets))
@@ -357,7 +365,7 @@ function NPCManager.LoadGrid(square)
         NPCManager.NPCInRadius = NPCManager.NPCInRadius + 1
     end
 end
---Events.LoadGridsquare.Add(NPCManager.LoadGrid)
+Events.LoadGridsquare.Add(NPCManager.LoadGrid)
 
 function NPCManager.LoadGridNewRooms(square)
     local id = square:getRoomID()
@@ -377,6 +385,11 @@ function NPCManager.SaveLoadFunc()
     if NPCManager.isSaveLoadUpdateOn == false then return end
 
     for charID, value in pairs(NPCManager.characterMap) do
+        if value.npc == nil then
+            value.isSaved = true
+            value.isLoaded = false
+        end
+
         if value.isSaved == false then
             if NPCUtils.getDistanceBetween(getPlayer(), value.npc.character) > 60 then
                 value.x = value.npc.character:getX()
@@ -517,6 +530,7 @@ Events.OnTick.Add(NPCManager.CountNPCInRadius)
 
 
 function NPCManager:getCharacter(id)
+    if NPCManager.characterMap[id] == nil then return nil end
     return NPCManager.characterMap[id].npc
 end
 

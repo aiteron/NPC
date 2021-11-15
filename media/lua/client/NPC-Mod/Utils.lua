@@ -263,10 +263,6 @@ function NPCUtils:getDoor(sq)
     return sq:getDoor(true)
 end
 
-function NPCUtils:inSafeZone(sq)
-    return not NPCManager.zombiesDangerByXYZ["X" .. tostring(sq:getX()) .. "Y" .. tostring(sq:getY()) .. "Z" .. tostring(sq:getZ())]
-end
-
 function NPCUtils:evalIsFood(item)
     if item == nil then return false end
 

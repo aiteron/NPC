@@ -177,9 +177,12 @@ function NPCRadialMenu.chooseCharacter(playerObj, npc)
 	menu:clear()
 
 	if npc.AI:getType() == "AutonomousAI" then
-		--menu:addSlice("TEST - Improve reputation", nil, NPCRadialMenu.improveReputation, npc)
-
-		menu:addSlice("Rob", nil, NPCRadialMenu.rob, npc)
+		if npc.isRobbed then
+			menu:addSlice("Command drop loot on floor", nil, NPCRadialMenu.robDropLoot, npc)
+			menu:addSlice("Command flee", nil, NPCRadialMenu.robFlee, npc)
+		else
+			menu:addSlice("Rob", nil, NPCRadialMenu.rob, npc)
+		end
 
 		menu:addSlice("Invite to team", getTexture("media/textures/NPC_Invite.png"), NPCRadialMenu.inviteToTeam, npc)
 	else	
@@ -204,9 +207,22 @@ function NPCRadialMenu.chooseCharacter(playerObj, npc)
 	end
 end
 
+function NPCRadialMenu.robDropLoot(npc)
+	ISTimedActionQueue.clear(npc.character)
+	npc.robDropLoot = true
+end
+
+function NPCRadialMenu.robFlee(npc)
+	ISTimedActionQueue.clear(npc.character)
+	npc.robFlee = true
+end
+
 function NPCRadialMenu.rob(npc)
 	npc.isRobbed = true
     npc.robbedBy = getPlayer()
+
+	npc.reputationSystem:updatePlayerRep(-800)
+	npc:SayNote("Reputation [img=media/ui/ArrowDown.png]", NPCColor.Red)
 end
 
 function NPCRadialMenu.improveReputation(npc)
@@ -440,7 +456,7 @@ function NPCRadialMenu.Talk(npc)
 	npc.character:facePosition(getPlayer():getX(), getPlayer():getY())
 	
 	npc.AI.idleCommand = "TALK"
-	npc.AI.TaskArgs = getPlayer()
+	npc.AI.TaskArgs.talkChar = getPlayer()
 end
 
 function NPCRadialMenu.dropLoot(npc)

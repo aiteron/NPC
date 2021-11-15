@@ -11,9 +11,9 @@ function TalkTask:new(character)
 	o.name = "Talk"
 	o.complete = false
 
-    o.talkCompanion = character:getModData().NPC.AI.TaskArgs
+    o.talkCompanion = character:getModData().NPC.AI.TaskArgs.talkChar
 
-    if o.talkCompanion == nil then
+    if o.talkCompanion == nil or not instanceof(self.talkCompanion, "IsoPlayer") then
         local npc = o.character:getModData().NPC
         if npc.AI:getType() == "AutonomousAI" then
             local groupNPCIDs = NPCGroupManager.Data.groups[NPCGroupManager:getGroupID(npc.UUID)].npcIDs
@@ -22,7 +22,7 @@ function TalkTask:new(character)
                 o.talkCompanion = talkNPC.character
 
                 talkNPC.AI.idleCommand = "TALK_COMPANION"
-                talkNPC.AI.TaskArgs = self.character
+                talkNPC.AI.TaskArgs.talkChar = self.character
             end
         end
     end
@@ -45,7 +45,7 @@ function TalkTask:stop()
 end
 
 function TalkTask:isValid()
-    return self.character and self.talkCompanion
+    return self.character ~= nil and instanceof(self.talkCompanion, "IsoPlayer")
 end
 
 function TalkTask:update()

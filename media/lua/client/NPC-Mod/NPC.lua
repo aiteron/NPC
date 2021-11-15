@@ -37,6 +37,8 @@ function NPC:new(square, preset)
 	---
 	o.isRobbed = false
 	o.robbedBy = nil
+	o.robDropLoot = false
+	o.robFlee = false
 
 	o:save()
 
@@ -310,6 +312,9 @@ function NPC:updateSpecialParams()
 		self.character:getStats():setThirst(0.0)
 		self.character:getStats():setHunger(0.0)
 	end
+
+	self.character:getStats():setPanic(0);
+	self.character:getBodyDamage():setHasACold(false)
 
 	if not NPCConfig.config["NPC_CAN_INFECT"] then
 		self.character:getBodyDamage():setInfectionLevel(0)

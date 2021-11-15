@@ -38,6 +38,8 @@ function PlayerGroupAI:new(character)
 	o.fleeFindOutsideSq = nil
 
     o.isAtBase = false
+
+    o.updateItemLocationTimer = 0
     
     return o
 end
@@ -396,7 +398,7 @@ function PlayerGroupAI:calcCommonTaskCat()
         end
     
         if self.idleCommand == "TALK" then
-            self.TaskArgs = getPlayer()
+            self.TaskArgs.talkChar = getPlayer()
             return "Talk"
         end
     else
@@ -413,7 +415,7 @@ function PlayerGroupAI:calcCommonTaskCat()
         end
     
         if self.IP.talkIdle  then
-            self.TaskArgs = getPlayer()
+            self.TaskArgs.talkChar = getPlayer()
             return "Talk"
         end
     end

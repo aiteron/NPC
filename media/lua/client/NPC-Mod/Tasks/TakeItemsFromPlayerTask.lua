@@ -11,7 +11,7 @@ function TakeItemsFromPlayerTask:new(character)
 	o.name = "TakeItemsFromPlayer"
 	o.complete = false
 
-    o.items = character:getModData().NPC.AI.TaskArgs
+    o.items = character:getModData().NPC.AI.TaskArgs.inviteItems
 
 	return o
 end
