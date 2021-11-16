@@ -28,18 +28,18 @@ function ReputationSystem:getNPCRep(npc)
             if NPCGroupManager:getGroupID(npc.UUID) == NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID) then
                 return 1000
             else
-                if self.reputationList[npc.ID] == nil then
+                if self.reputationList[npc.UUID] == nil then
                     return self.defaultReputation
                 else
-                    return self.reputationList[npc.ID]
+                    return self.reputationList[npc.UUID]
                 end
             end
         else
             if NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID))] == nil or NPCManager.characterMap[NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID))].isLoaded == false then
-                if self.reputationList[npc.ID] == nil then
+                if self.reputationList[npc.UUID] == nil then
                     return self.defaultReputation
                 else
-                    return self.reputationList[npc.ID]
+                    return self.reputationList[npc.UUID]
                 end
             else
                 local char = NPCManager:getCharacter(NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(self.character:getModData().NPC.UUID)))
@@ -56,10 +56,10 @@ function ReputationSystem:getNPCRep(npc)
             return 1000
         end
 
-        if self.reputationList[npc.ID] == nil then
+        if self.reputationList[npc.UUID] == nil then
             return self.defaultReputation
         else
-            return self.reputationList[npc.ID]
+            return self.reputationList[npc.UUID]
         end
     end
 end
@@ -96,6 +96,8 @@ function ReputationSystem:updateNPCRep(value, npcID)
     if self.reputationList[npcID] == nil then
         self.reputationList[npcID] = self.defaultReputation
     end
+    print(self.reputationList[npcID])
+    print(self.defaultReputation)
     self.reputationList[npcID] = self.reputationList[npcID] + value
 end
 

@@ -180,8 +180,6 @@ function NPC:save()
 
 	local tempTask = nil
 	if self.character:getModData()["NPC"].AI.TaskManager.tasks[0] ~= nil then
-		self.character:getModData().NPCTaskName = self.character:getModData()["NPC"].AI.TaskManager.tasks[0].task.name
-		self.character:getModData().NPCTaskScore = self.character:getModData()["NPC"].AI.TaskManager.tasks[0].score
 		tempTask = self.character:getModData()["NPC"].AI.TaskManager.tasks[0]
 		self.character:getModData()["NPC"].AI.TaskManager.tasks[0] = nil
 	end
@@ -256,36 +254,6 @@ function NPC:loadAI(o)
 		o.AI = PlayerGroupAI:new(o.character)
 	else
 		o.AI = AutonomousAI:new(o.character)
-	end
-
-	local taskTable = {
-		["AttachItem"] = {command = "ATTACH", task = AttachItemTask},
-		["Attack"] = {command = "", task = AttackTask},
-		["EatDrink"] = {command = "", task = EatDrinkTask},
-		["EquipWeapon"] = {command = "", task = EquipWeaponTask},
-		["FindItems"] = {command = "FIND_ITEMS", task = FindItemsTask},
-		["FirstAid"] = {command = "", task = FirstAidTask},
-		["Flee"] = {command = "", task = FleeTask},
-		["StepBack"] = {command = "", task = StepBackTask},
-		["Follow"] = {command = "FOLLOW", task = FollowTask},
-		["ReloadWeapon"] = {command = "", task = ReloadWeaponTask},
-		["StayHere"] = {command = "STAY", task = StayHereTask},
-		["Surrender"] = {command = "", task = SurrenderTask},
-		["Wash"] = {command = "WASH", task = WashTask},
-		["Smoke"] = {command = "", task = SmokeTask},
-		["GoToInterestPoint"] = {command = "", task = GoToInterestPointTask},
-		["Talk"] = {command = "", task = TalkTask}
-	}
-
-	if o.character:getModData().NPCTaskName ~= nil then
-		NPCPrint("NPC", "Load NPC last AI task", o.character:getModData().NPCTaskName, o.character:getDescriptor():getSurname(), o.UUID)
-
-		if o.character:getModData().NPCTaskName == "Talk" then
-			return
-		end
-
-		o.AI.command = taskTable[o.character:getModData().NPCTaskName].command
-		o.AI.TaskManager:addToTop(taskTable[o.character:getModData().NPCTaskName].task:new(o.character), o.character:getModData().NPCTaskScore)
 	end
 end
 

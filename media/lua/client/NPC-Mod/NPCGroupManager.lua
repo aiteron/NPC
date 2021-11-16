@@ -89,6 +89,8 @@ function NPCGroupManager:ignoreNPC(raiderID, npcID)
         NPCGroupManager.igonreNPCIDs[raiderID] = {}
     end
     NPCGroupManager.igonreNPCIDs[raiderID][npcID] = true
+
+    NPCManager:getCharacter(raiderID).reputationSystem.reputationList[npcID] = 0
 end
 
 function NPCGroupManager:isIgnoreNPC(raiderID, npcID)
@@ -237,7 +239,7 @@ function NPCGroupManager:meet(npc1, npc2)
     if npc2.AI:getType() == "PlayerGroupAI" then
         if npc1.isRaider and (NPCGroupManager:getGroupID(npc1.UUID) == nil or NPCGroupManager:isLeader(npc1.UUID)) then
             if not NPCGroupManager:isIgnoreNPC(npc1.UUID, npc2.UUID) then
-                if ZombRand(0, 2) == 0 then
+                if ZombRand(0, 10) <= 10 then
                     npc1.AI.command = "ROBBING"
                     npc1.AI.TaskArgs.robbedPerson = npc2.character
                     NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
@@ -249,7 +251,7 @@ function NPCGroupManager:meet(npc1, npc2)
     elseif NPCGroupManager:getGroupID(npc2.UUID) ~= nil then
         if npc1.isRaider and (NPCGroupManager:getGroupID(npc1.UUID) == nil or NPCGroupManager:isLeader(npc1.UUID)) then
             if not NPCGroupManager:isIgnoreNPC(npc1.UUID, npc2.UUID) then
-                if ZombRand(0, 2) == 0 and NPCGroupManager:getTeamScore(npc2.UUID) < NPCGroupManager:getTeamScore(npc1.UUID) then
+                if ZombRand(0, 10) <= 10 and NPCGroupManager:getTeamScore(npc2.UUID) < NPCGroupManager:getTeamScore(npc1.UUID) or true then
                     npc1.AI.command = "ROBBING"
                     npc1.AI.TaskArgs.robbedPerson = npc2.character
                     NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)
@@ -261,8 +263,8 @@ function NPCGroupManager:meet(npc1, npc2)
     else
         if npc1.isRaider and (NPCGroupManager:getGroupID(npc1.UUID) == nil or NPCGroupManager:isLeader(npc1.UUID)) then
             if not NPCGroupManager:isIgnoreNPC(npc1.UUID, npc2.UUID) then
-                if ZombRand(0, 2) == 0 then
-                    if NPCGroupManager:getTeamScore(npc2.UUID) < NPCGroupManager:getTeamScore(npc1.UUID) then
+                if ZombRand(0, 10) <= 10  then
+                    if NPCGroupManager:getTeamScore(npc2.UUID) < NPCGroupManager:getTeamScore(npc1.UUID) or true then
                         npc1.AI.command = "ROBBING"
                         npc1.AI.TaskArgs.robbedPerson = npc2.character
                         NPCGroupManager:ignoreNPC(npc1.UUID, npc2.UUID)

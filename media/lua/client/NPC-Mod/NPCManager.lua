@@ -1,6 +1,6 @@
 require "NPC-Mod/NPCGroupManager"
 
-local BUILD_VERSION = "v.0.1.15"
+local BUILD_VERSION = "v.0.1.17"
 
 NPCManager = {}
 NPCManager.characters = {}
@@ -13,6 +13,7 @@ NPCManager.deadNPCList = {}
 NPCManager.NPCInRadius = 0
 NPCManager.spawnON = false
 NPCManager.isSaveLoadUpdateOn = false
+NPCManager.characterBuffer = {}
 
 NPCManager.chooseSector = false
 NPCManager.sector = nil
@@ -127,10 +128,10 @@ NPCManager.hitPlayer = function(wielder, victim, weapon, damage)
                 if NPCGroupManager:getGroupID(victim:getModData().NPC.UUID) ~= nil then
                     local char = NPCManager:getCharacter(NPCGroupManager:getLeaderID(NPCGroupManager:getGroupID(victim:getModData().NPC.UUID)))
                     if char ~= nil then
-                        char.reputationSystem.reputationList[wielder:getModData().NPC.ID] = -500
+                        char.reputationSystem.reputationList[wielder:getModData().NPC.UUID] = -500
                     end
                 end
-                victim:getModData().NPC.reputationSystem.reputationList[wielder:getModData().NPC.ID] = -500
+                victim:getModData().NPC.reputationSystem.reputationList[wielder:getModData().NPC.UUID] = -500
             end
         end
 	end
@@ -385,9 +386,10 @@ function NPCManager.SaveLoadFunc()
     if NPCManager.isSaveLoadUpdateOn == false then return end
 
     for charID, value in pairs(NPCManager.characterMap) do
-        if value.npc == nil then
-            value.isSaved = true
-            value.isLoaded = false
+        if NPCManager.characterBuffer[charID] ~= nil then
+            value.npc = NPCManager.characterBuffer[charID]
+            value.isLoaded = true
+            NPCManager.characterBuffer[charID] = nil
         end
 
         if value.isSaved == false then
@@ -441,8 +443,11 @@ function NPCManager.OnSave()
 
             value.npc:save()
             value.isSaved = true
+            value.isLoaded = false
             
             NPCPrint("NPCManager", "NPC is saved (OnSave)", charID, value.npc.character:getDescriptor():getSurname())
+
+            NPCManager.characterBuffer[charID] = value.npc
 
             value.npc = nil
         end

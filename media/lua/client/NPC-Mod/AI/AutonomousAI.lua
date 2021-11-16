@@ -304,6 +304,8 @@ function AutonomousAI:UpdateInputParams()
        p.enemyAimHealth = self.character:getModData().NPC.robbedBy:getHealth()
     end
 
+    p.isRobbing = self.TaskManager:getCurrentTaskName() == "Robbing"
+
     ---
     self.IP = p
 end

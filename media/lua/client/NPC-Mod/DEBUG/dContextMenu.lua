@@ -19,6 +19,12 @@ local function teleportToNPC(playerObj, npc)
     pl:setZ(npc.character:getZ())
 end
 
+local function killAllNPC()
+    for i, char in ipairs(NPCManager.characters) do
+        char.character:Kill(char.character)
+    end
+end
+
 local function spawnCompanionMenu(player, context, worldobjects, test)
 	local sq = nil
     local playerObj = getSpecificPlayer(player)
@@ -39,6 +45,7 @@ local function spawnCompanionMenu(player, context, worldobjects, test)
         subMenuSpawn:addOption("Spawn Random - Player team", playerObj, spawnCompanion, sq, NPCPresets_GetPreset(NPCPresets), true)
         subMenuSpawn:addOption("Spawn Random - Auto team", playerObj, spawnCompanion, sq, NPCPresets_GetPreset(NPCPresets), false)
         subMenuSpawn:addOption("Spawn Random - Raider team", playerObj, spawnCompanion, sq, NPCPresets_GetPreset(NPCPresets_Raiders), false)
+        subMenuSpawn:addOption("Kill all npc", playerObj, killAllNPC, sq)
 
         local deadOpt = subMenuSpawn:addOption("Revive dead NPC")
         local deadSubMenu = subMenuSpawn:getNew(subMenuSpawn)

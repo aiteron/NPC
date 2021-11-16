@@ -33,7 +33,7 @@ function AttackTask:isComplete()
 end
 
 function AttackTask:isValid()
-    if self.character == nil or self.character:getModData()["NPC"].nearestEnemy == nil then
+    if self.character == nil or self.character:getModData()["NPC"].nearestEnemy == nil or self.character:getModData()["NPC"].nearestEnemy:isDead() or self.character:getModData()["NPC"].nearestEnemy:getSquare() == nil then
         self.character:NPCSetAttack(false)
         self.character:NPCSetMelee(false)
         self.character:NPCSetAiming(false)
@@ -43,7 +43,6 @@ function AttackTask:isValid()
 
         return false
     end
-
     return true
 end
 
@@ -70,6 +69,9 @@ function AttackTask:update()
         IsoPlayer.setCoopPVP(true)   
         NPCManager.pvpTurnOffTimer = 120 
     end
+
+
+
 
     if self.character:getModData()["NPC"]:isUsingGun() and self.character:getPrimaryHandItem() and self.character:getPrimaryHandItem():isAimedFirearm() then
         if self.character:getVehicle() ~= nil then
